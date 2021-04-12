@@ -1,0 +1,83 @@
+
+::-moz-focus-inner {
+  border: 0;
+}
+
+* {
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+:focus {
+  outline: none;
+}
+
+.view {
+  /*border: solid 1px transparent;*/
+  border-width: 0px 0px 1px 0px;
+  transition: all 0.3s;
+}
+
+
+.layout-container > * {
+  margin: 4px;
+  box-sizing: border-box;
+}
+
+
+/* preview */
+.layout-container > .preview {
+  background: rgba(155, 155, 155, 0.4);
+  /*border: dashed 1px #666; */
+  /*transition: all 0.3s;*/
+}
+
+/* drag layer */
+.layout-container > .drag {
+  display: block;
+  transform: scale(1) translate(0%, 0%);
+  transition: transform 0.3s;
+}
+
+.layout-container > .drag.dragging {
+  opacity: 1;
+  
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(128, 128, 128, 0.1) inset;
+  /* box-shadow: 0 0 20px 4px rgba(0, 0, 0, 0.4);*/
+  transform: scale(1) translate(0%, 0%);
+}
+.layout-container > .drag.dragging > .tab-header {
+  background-color: #ffffff;
+}
+
+/* Splitter styling */
+.split > .splitter {
+  flex-basis: 1px;
+  position: relative;
+  background: rgb(212, 212, 212);
+  transition: all 0.3s;
+}
+
+.split.resizeable > .splitter:hover/*,
+.split.resizeable.resizing > .splitter  */{
+  background: rgba(100, 100, 100, 0.4);
+  transition: all 0.3s;
+}
+
+
+
+.split.resizeable > .splitter::after {
+  position: absolute;
+  content: " ";
+  z-index: 10;
+  transition: all 0.3s;
+  top: -4px;
+  right: -4px;
+  bottom: -4px;
+  left: -4px;
+}
+
+.layout-container > .drag.dragging {
+  z-index: 20;
+  cursor: move;
+}

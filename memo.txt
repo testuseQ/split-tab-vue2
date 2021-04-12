@@ -1,0 +1,20 @@
+
+
+# やること
+
+style.cssの解体=>見た目と最低限機能の分離のため必要
+no-tab問題 ok
+cokkie保存対応
+    - カスタマイズできるようにする
+insertAmountと実際のhit判定の切り分け ok
+vuetifyレイアウト適用 mada
+loadashのディープコピー解体 ok
+
+
+タブにスライドバー
+    - SimpleBar使う
+-名前よくする
+
+
+- スライドバ―をview直下へ移動試し
+onSplitResize
