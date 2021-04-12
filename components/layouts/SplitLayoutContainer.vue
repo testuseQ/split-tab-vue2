@@ -12,6 +12,122 @@ export default {
     };
   },
   methods: {
+    toPartitions(percents, minimizes, minimizePerent, spliterPerent) {
+      const minimizeCount = minimizes.reduce(
+        (acc, x) => (x.type === "none" ? acc : acc + 1),
+        0
+      );
+      const spliterCount = minimizes.length - 1;
+      const minimizeSizeLot =
+        (minimizePerent * minimizeCount + spliterPerent * spliterCount) /
+        (minimizes.length - minimizeCount);
+
+      const percentsReal = percents.map((parcent, i) => {
+        if (this.node.minimizes[i].type !== "none") {
+          return minimizePerent;
+        }
+
+        return parcent - minimizeSizeLot;
+      });
+      // const startPercentsReal = percents.map((parcent, i) => {
+      //   if (this.node.minimizes[i].type !== "none") {
+      //     return minimizePerent;
+      //   }
+
+      //   let amount = 0;
+      //   if (i !== 0) {
+      //     amount += spliterPerent / 2;
+      //   }
+      //   for (let j = i - 1; j >= 0; j--) {
+      //     if (this.node.minimizes[j].type === "none") break;
+      //     amount += minimizePerent / 2;
+      //   }
+      //   if (i !== startPercents.length - 1) {
+      //     amount += spliterPerent / 2;
+      //   }
+      //   for (let j = i + 1; j < startPercents.length; j++) {
+      //     if (this.node.minimizes[j].type === "none") break;
+      //     amount += minimizePerent / 2;
+      //   }
+      //   return parcent - amount;
+      // });
+      const partitions = percentsReal
+        .reduce(
+          (acc, x, i) =>
+            acc.concat([
+              x +
+                acc.slice(-1)[0] +
+                (i === 0 || i === percentsReal.lenght - 1
+                  ? spliterPerent / 2
+                  : spliterPerent),
+            ]),
+          [0]
+        )
+        .slice(0, -1)
+        .concat(1);
+      // console.log("1--toPartitions--");
+
+      // console.log("partitions", partitions);
+      // console.log(
+      //   "percentsReal",
+      //   percentsReal,
+      //   percentsReal.reduce((acc, x) => acc + x, 0)
+      // );
+      // console.log(
+      //   "percents",
+      //   percents,
+      //   percents.reduce((acc, x) => acc + x, 0)
+      // );
+      return partitions;
+    },
+    toPercents(partitions, minimizes, minimizePerent, spliterPerent) {
+      const percentsReal = partitions
+        .slice(1)
+        .reduce(
+          (acc, x) => acc.concat(x - acc.reduce((sum, y) => sum + y, 0)),
+          []
+        )
+        .map(
+          (x, i) =>
+            x -
+            (i === 0 || i === partitions.lenght - 2
+              ? spliterPerent / 2
+              : spliterPerent)
+        );
+
+      const minimizeCount = minimizes.reduce(
+        (acc, x) => (x.type === "none" ? acc : acc + 1),
+        0
+      );
+      const spliterCount = minimizes.length - 1;
+      const minimizeSizeLot =
+        (minimizePerent * minimizeCount + spliterPerent * spliterCount) /
+        (minimizes.length - minimizeCount);
+
+      const percents = percentsReal.map((parcent, i) => {
+        if (this.node.minimizes[i].type !== "none") {
+          return 0;
+        }
+
+        return parcent + minimizeSizeLot;
+      });
+
+      // console.log("2--toPercents--");
+
+      // console.log("partitions", partitions);
+      // console.log(
+      //   "percentsReal",
+      //   percentsReal,
+      //   percentsReal.reduce((acc, x) => acc + x, 0)
+      // );
+      // console.log(
+      //   "percents",
+      //   percents,
+      //   percents.reduce((acc, x) => acc + x, 0)
+      // );
+      return percents;
+    },
+
     openMinimize(index, e) {
       this.$emit("setMinimize", this.node.children[index].id, "none", 0);
     },
@@ -25,36 +141,99 @@ export default {
       e.preventDefault();
       e.stopPropagation();
 
+      const h = this.node.dir === "horizontal";
+      const clientSize = h ? this.$el.clientWidth : this.$el.clientHeight;
+      const minimizePerent = minimizeSize / clientSize;
+      const spliterPerent = spliterSize / clientSize;
+
       const startMinimizes = this.node.minimizes.map((x) => ({ ...x }));
       const startPercents = [...this.node.percents];
-      const startPartitions = startPercents
-        .reduce((acc, x) => acc.concat([x + acc.slice(-1)[0]]), [0])
-        .slice(0, -1)
-        .concat(1);
+      const startPartitions = this.toPartitions(
+        this.node.percents,
+        this.node.minimizes,
+        minimizePerent,
+        spliterPerent
+      );
+
+      // const startPercentsReal = startPercents.map((parcent, i) => {
+      //   if (this.node.minimizes[i].type !== "none") {
+      //     return minimizePerent;
+      //   }
+
+      //   let amount = 0;
+      //   if (i !== 0) {
+      //     amount += spliterPerent / 2;
+      //   }
+      //   for (let j = i - 1; j >= 0; j--) {
+      //     if (this.node.minimizes[j].type === "none") break;
+      //     amount += minimizePerent / 2;
+      //   }
+      //   if (i !== startPercents.length - 1) {
+      //     amount += spliterPerent / 2;
+      //   }
+      //   for (let j = i + 1; j < startPercents.length; j++) {
+      //     if (this.node.minimizes[j].type === "none") break;
+      //     amount += minimizePerent / 2;
+      //   }
+      //   return parcent - amount;
+      // });
+
+      // const startPartitions = startPercents
+      //   .reduce(
+      //     (acc, x, i) =>
+      //       acc.concat([
+      //         x +
+      //           acc.slice(-1)[0] +
+      //           (i === 0 || i === startPercents.lenght - 1
+      //             ? spliterPerent / 2
+      //             : spliterPerent),
+      //       ]),
+      //     [0]
+      //   )
+      //   .slice(0, -1)
+      //   .concat(1);
 
       const drag = (event) => {
         //console.log("drag");
-        const h = this.node.dir === "horizontal";
         const mousePos = h ? event.clientX : event.clientY;
-        const parentRect = this.$el.getBoundingClientRect();
-        const parentRectPos = h ? parentRect.left : parentRect.top;
+        const perentRect = this.$el.getBoundingClientRect();
+        const perentRectPos = h ? perentRect.left : perentRect.top;
         const clientSize = h ? this.$el.clientWidth : this.$el.clientHeight;
+        const minimizePerent = minimizeSize / clientSize;
+        const spliterPerent = spliterSize / clientSize;
 
-        let partition = (mousePos - parentRectPos) / clientSize;
-        const partitionUpperLimit = 1;
-        const partitionLowerLimit = 0;
+        const partitions = this.toPartitions(
+          this.node.percents,
+          this.node.minimizes,
+          minimizePerent,
+          spliterPerent
+        );
+
+        let upperOffset = spliterPerent;
+        const upperAdder = spliterPerent + minimizePerent;
+        let lowerOffset = -spliterPerent;
+        const lowerAdder = -(spliterPerent + minimizePerent);
+
+        let partition = (mousePos - perentRectPos) / clientSize;
+
+        const partitionIndex = index + 1;
+        const partitionUpperLimit =
+          1 -
+          upperAdder * (partitions.length - partitionIndex - 1) +
+          spliterPerent / 2;
+        const partitionLowerLimit =
+          0 - lowerAdder * partitionIndex - spliterPerent / 2;
         if (partition < partitionLowerLimit) {
           partition = partitionLowerLimit;
         } else if (partition > partitionUpperLimit) {
           partition = partitionUpperLimit;
         }
 
-        const partitions = this.node.percents
-          .reduce((acc, x) => acc.concat([x + acc.slice(-1)[0]]), [0])
-          .slice(0, -1)
-          .concat(1);
+        // const partitions = this.node.percents
+        //   .reduce((acc, x) => acc.concat([x + acc.slice(-1)[0]]), [0])
+        //   .slice(0, -1)
+        //   .concat(1);
 
-        const partitionIndex = index + 1;
         partitions[partitionIndex] = partition;
 
         //console.log(this.node.percents, partitions, startPartitions);
@@ -62,8 +241,9 @@ export default {
         // if (partition > startPartitions[index]) {
         for (let i = partitionIndex + 1; i < startPartitions.length; i++) {
           let j = i - 1;
-          if (partition >= startPartitions[i]) {
-            partitions[i] = partition;
+          upperOffset += upperAdder;
+          if (partition + upperOffset >= startPartitions[i]) {
+            partitions[i] = partition + upperOffset - spliterPerent;
             if (this.node.minimizes[j].type === "none") {
               this.$emit(
                 "setMinimize",
@@ -84,8 +264,9 @@ export default {
         // } else if (partition < startPartitions[index]) {
         for (let i = partitionIndex - 1; i >= 0; i--) {
           let j = i;
-          if (partition <= startPartitions[i]) {
-            partitions[i] = partition;
+          lowerOffset += lowerAdder;
+          if (partition + lowerOffset <= startPartitions[i]) {
+            partitions[i] = partition + lowerOffset + spliterPerent;
             if (this.node.minimizes[j].type === "none") {
               this.$emit(
                 "setMinimize",
@@ -121,12 +302,19 @@ export default {
             this.$emit("setMinimize", this.node.children[j].id, "none", 0);
           }
         }
-        const percents = partitions
-          .slice(1)
-          .reduce(
-            (acc, x) => acc.concat(x - acc.reduce((sum, y) => sum + y, 0)),
-            []
-          );
+        // const percents = partitions
+        //   .slice(1)
+        //   .reduce(
+        //     (acc, x) => acc.concat(x - acc.reduce((sum, y) => sum + y, 0)),
+        //     []
+        //   );
+
+        const percents = this.toPercents(
+          partitions,
+          this.node.minimizes,
+          minimizePerent,
+          spliterPerent
+        );
         //console.log(partitions, percents);
         this.$emit("setPercents", this.node.id, percents);
       };

@@ -353,6 +353,7 @@ export default {
           const e = this.$refs.container.querySelector(
             `.split-layout__page[node-id="${x.id}"]`
           );
+          if (e == null) return;
           const srcView = this.$refs.pages.querySelector(
             `.split-layout-page__page[node-id="${x.id}"] `
           );
