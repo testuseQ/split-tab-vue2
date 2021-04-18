@@ -11,7 +11,7 @@ export default {
     openable: { type: Boolean, default: true },
     editable: { type: Boolean, default: true },
     resizeable: { type: Boolean, default: true },
-    saveing: { type: Boolean, default: true },
+    volatile: { type: Boolean, default: true },
 
     layouts: { type: Object, default: () => ({}) },
 
@@ -44,8 +44,14 @@ export default {
 
   watch: {
     layouts() {
-      console.log("watch splits");
       this.root = this.calcLayouts();
+      this.onSetRect(this.root);
+      this.save();
+    },
+    minimizeSize() {
+      this.onSetRect(this.root);
+    },
+    spliterSize() {
       this.onSetRect(this.root);
     },
   },
@@ -73,7 +79,14 @@ export default {
       if (node == null) return;
       const nodes = this.findNodes(node, (x) => x.type === "page");
       nodes.forEach((x) => this.$eventHub.$emit("set-rect-" + x.id, nextTick));
-      console.log("onSetRect");
+    },
+    save() {
+      if (this.volatile) return;
+      localStorage.layouts = this.serializeTree(this.root);
+    },
+    load() {
+      if (this.volatile) return;
+      return this.deserializeTree(localStorage.layouts);
     },
     openPage(args) {
       let { page, key, title, tabs, scroll, scrollX, scrollY } = args;
@@ -127,7 +140,7 @@ export default {
         }
       }
 
-      //this.save();
+      this.save();
     },
     onTabDragStart(e) {
       if (e.button !== 0) return;
@@ -151,7 +164,7 @@ export default {
       if (!beforeActive) {
         this.onSetRect(node, false);
       }
-      // this.save();
+      this.save();
       if (!this.editable) {
         return;
       }
@@ -342,7 +355,7 @@ export default {
       this.drag = null;
       console.log("onTabDrop");
 
-      //this.save();
+      this.save();
     },
     onTabClose(e) {
       if (e.button !== 0) return;
@@ -370,7 +383,7 @@ export default {
       console.log("onTabClose", ancestorContainer);
       this.onSetRect(ancestorContainer, false);
 
-      //this.save();
+      this.save();
     },
     evacuatePage(node) {
       const nodes = this.findNodes(node, (x) => x.type === "page");
@@ -543,6 +556,7 @@ export default {
       } else {
         this.evacuatePage(node);
       }
+      this.save();
     },
     onSetMinimize(nodeId, type, percent) {
       const node = this.findIdNode(this.root, nodeId);
@@ -572,6 +586,9 @@ export default {
       //console.log("setPercents", nodeId, percents);
       const node = this.findIdNode(this.root, nodeId);
       node.percents = [...percents];
+    },
+    onEndResize() {
+      this.save();
     },
     calcLayouts() {
       let idCounter = 1;
@@ -712,6 +729,13 @@ export default {
       return root;
     },
     initLayouts() {
+      if (!this.volatile) {
+        let retLayouts = this.load();
+        if (retLayouts) {
+          return retLayouts;
+        }
+      }
+
       return this.calcLayouts();
     },
   },
@@ -784,6 +808,7 @@ export default {
               onSetMinimize={this.onSetMinimize}
               onSetPercents={this.onSetPercents}
               onSetRect={this.onSetRect}
+              onEndResize={this.onEndResize}
               minimizeSize={this.minimizeSize}
               spliterSize={this.spliterSize}
             >

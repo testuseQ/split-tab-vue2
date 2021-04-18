@@ -286,6 +286,7 @@ export default {
         document.removeEventListener("mouseup", drop);
         document.removeEventListener("touchmove", drag);
         document.removeEventListener("touchend", drop);
+        this.$emit("endResize");
       };
       document.addEventListener("mousemove", drag);
       document.addEventListener("mouseup", drop);

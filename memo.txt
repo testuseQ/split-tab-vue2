@@ -23,26 +23,18 @@ onSplitResize
 ## remake
 - slot layout
 - add vue ok
-- rect 
+- rect ok
 - split minimizeのopen時のリミット ok
 - split minimize方向そろえる ok
 - dragging gorst ok
 - simpleber done
 - closeable ok
-- openable 
-- resizeable スプリッタの移動可能か
-- editable タブのドラッグ可能か
-- save 状態をローカルストレージに保存
+- openable ok
+- resizeable スプリッタの移動可能か ok
+- editable タブのドラッグ可能か ok
+- save 状態をローカルストレージに保存 ok
 
 
-
-    tabOmitted: { type: String, default: "" }, // none/alone/all
-    tabDisabled: { type: Boolean, default: false },
-    : { type: Boolean, default: true },
-    addable: { type: Boolean, default: true },
-    edit: { type: Boolean, default: true },
-    resize: { type: Boolean, default: true },
-    saveState: { type: [String], default: "query" },
 
 
 

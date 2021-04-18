@@ -193,7 +193,7 @@ export default {
 
         editable: true,
         resizeable: true,
-        volatile: true,
+        volatile: (localStorage.volatile ?? "true") === "true",
 
         layouts: layouts[0],
         layoutN: 0,
@@ -232,6 +232,7 @@ export default {
     },
     toggleVolatile() {
       this.state.volatile = !this.state.volatile;
+      localStorage.volatile = this.state.volatile.toString();
     },
     toggleOuterInsertable() {
       this.state.outerInsertable = !this.state.outerInsertable;
