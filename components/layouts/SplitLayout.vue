@@ -6,24 +6,24 @@ import SplitLayoutContainer from "./SplitLayoutContainer";
 import SplitLayoutTree from "./SplitLayoutTree.js";
 export default {
   props: {
-    tabOmitted: { type: String, default: "" }, // none/alone/all
     tabDisabled: { type: Boolean, default: false },
     closeable: { type: Boolean, default: true },
-    addable: { type: Boolean, default: true },
-    edit: { type: Boolean, default: true },
-    resize: { type: Boolean, default: true },
+    openable: { type: Boolean, default: true },
+    editable: { type: Boolean, default: true },
+    resizeable: { type: Boolean, default: true },
+    saveing: { type: Boolean, default: true },
+
     layouts: { type: [String, Number, Object], default: () => ({}) },
+
     insertAmount: { type: [String, Number], default: 33 },
     insertPreview: { type: [String, Number], default: 33 },
-    saveState: { type: [String], default: "query" },
-    onSaveState: {
-      type: [Function],
-      default: () => {},
-    },
-    onLoadState: { type: [Function], default: () => "" },
+
     outerInsertable: { type: Boolean, default: true },
     outerInsertAmount: { type: [String, Number], default: 33 },
     outerInsertPreview: { type: [String, Number], default: 0 },
+
+    minimizeSize: { type: Number, default: 80 },
+    spliterSize: { type: Number, default: 48 },
   },
   components: { SplitLayoutPages, SplitLayoutTabs, SplitLayoutContainer },
 
@@ -58,12 +58,14 @@ export default {
 
   beforeDestroy() {
     if (this.$eventHub) {
-      this.$eventHub.$off("add-view");
+      console.log("rthis.$eventHub.$off");
+      this.$eventHub.$off("add-view", this.addView);
     }
   },
 
   created() {
     if (this.$eventHub) {
+      console.log("this.$eventHub.$on");
       this.$eventHub.$on("add-view", this.addView);
     }
   },
@@ -83,7 +85,7 @@ export default {
         if (this.tabDisabled) return;
         this.setTabActive(this.root, target);
       } else {
-        if (!this.edit) return;
+        if (!this.openable) return;
         let newNode = {
           type: "page",
           id: this.getSequenceId(this.root),
@@ -109,7 +111,7 @@ export default {
             newNode,
             "center",
             null,
-            insertIndex
+            insertIndex + 1
           );
 
           console.log("Layout parent", parent);
@@ -135,26 +137,30 @@ export default {
       e.preventDefault();
       e.stopPropagation();
 
-      // if (this.tabDisabled) {
-      //   return;
-      // }
+      if (this.tabDisabled) {
+        return;
+      }
       this.setTabActive(this.root, node);
 
       // this.save();
-      // if (!this.edit) {
-      //   return;
-      // }
+      if (!this.editable) {
+        return;
+      }
 
       let nextActive = this.getNextActive(this.root, node);
       const containerRect = this.$refs.container.getBoundingClientRect();
       const trect = e.target.getBoundingClientRect(); // Target is draggable
 
+      let dom = e.target;
+      dom = this.getAncestorDom(dom, ".split-layout-tabs__header");
+      dom = dom.cloneNode(true);
+      console.log("drag dom", dom);
       this.drag = {
-        node: node,
+        node,
         offset: { x: e.clientX - trect.left, y: e.clientY - trect.top },
         on: false,
-        nextActive: nextActive,
-        dom: e.target.cloneNode(true),
+        nextActive,
+        dom,
       };
 
       this.$refs.drag.style.top = trect.y - containerRect.top + "px";
@@ -280,16 +286,22 @@ export default {
 
       if (dom.matches(".split-layout-tabs__header-space")) {
         dom = this.getAncestorDom(dom, ".split-layout-tabs__tabs");
-        const nodeId = Number(dom.getAttribute("node-id"));
+        const nodeId = Number(
+          dom.getAttribute("node-id").replace(/[^0-9]/g, "")
+        );
         target = this.findIdNode(this.root, nodeId);
       } else if (dom.matches(".split-layout-tabs__header")) {
-        const nodeId = Number(dom.getAttribute("node-id"));
+        const nodeId = Number(
+          dom.getAttribute("node-id").replace(/[^0-9]/g, "")
+        );
         const node = this.findIdNode(this.root, nodeId);
         target = this.getParentNode(this.root, node);
         insertIndex = target.children.findIndex((x) => x.id === node.id);
       } else if (dom.matches(".split-layout-tabs__content")) {
         dom = this.getAncestorDom(dom, ".split-layout-tabs__tabs");
-        const nodeId = Number(dom.getAttribute("node-id"));
+        const nodeId = Number(
+          dom.getAttribute("node-id").replace(/[^0-9]/g, "")
+        );
         target = this.findIdNode(this.root, nodeId);
       } else if (dom.matches(".split-layout__layout")) {
         target = this.root;
@@ -326,7 +338,6 @@ export default {
 
       //this.save();
     },
-
     evacuatePage(node) {
       const nodes = this.findNodes(node, (x) => x.type === "page");
 
@@ -336,7 +347,7 @@ export default {
 
       const els = nodes.map((x) =>
         this.$refs.container.querySelector(
-          `.split-layout-page__page[node-id="${x.id}"]`
+          `.split-layout-page__page[node-id="${"_" + x.id}"]`
         )
       );
 
@@ -344,18 +355,17 @@ export default {
         targetEl.appendChild(e);
       });
     },
-
     restorePage(node) {
       this.$nextTick(() => {
         const nodes = this.findNodes(node, (x) => x.type === "page");
 
         nodes.forEach((x) => {
           const e = this.$refs.container.querySelector(
-            `.split-layout__page[node-id="${x.id}"]`
+            `.split-layout__page[node-id="${"_" + x.id}"]`
           );
           if (e == null) return;
           const srcView = this.$refs.pages.querySelector(
-            `.split-layout-page__page[node-id="${x.id}"] `
+            `.split-layout-page__page[node-id="${"_" + x.id}"] `
           );
           console.log(node, e, srcView);
 
@@ -363,26 +373,170 @@ export default {
         });
       });
     },
-
-    onSetMinimize(nodeId, type, percent) {
-      console.log("onSetMinimize", nodeId, type, percent);
+    onClickMinimize(nodeId, type, minimizePercent, spliterPercent) {
       const node = this.findIdNode(this.root, nodeId);
       const parent = this.getParentNode(this.root, node);
       const siblingIndex = parent.children.findIndex(
         (child) => child.id === node.id
       );
-      //this.$set(parent.minimizes[siblingIndex], "percent", percent);
-      //this.$set(parent.minimizes[siblingIndex], "type", type);
+      const partitions = this.toPartitions(
+        parent.percents,
+        parent.minimizes,
+        minimizePercent,
+        spliterPercent
+      );
+      let targetIndex = null;
 
-      parent.minimizes[siblingIndex].percent = percent;
+      if (parent.minimizes[siblingIndex].type === "next") {
+        for (let i = siblingIndex + 1; i < parent.minimizes.length; i++) {
+          if (parent.minimizes[i].type === "none") {
+            targetIndex = i;
+            break;
+          }
+        }
+      } else if (parent.minimizes[siblingIndex].type === "prev") {
+        for (let i = siblingIndex - 1; i >= 0; i--) {
+          if (parent.minimizes[i].type === "none") {
+            targetIndex = i;
+            break;
+          }
+        }
+      }
+      let sumOpenPercent = 0;
+      if (parent.minimizes[siblingIndex].type === "next") {
+        for (let i = siblingIndex; i >= 0; i--) {
+          if (parent.minimizes[i].type === "none") {
+            break;
+          } else {
+            let partitionSourcePrevIndex = i;
+            let partitionSourceNextIndex = i + 1;
+            sumOpenPercent +=
+              parent.minimizes[i].percent -
+              (partitions[partitionSourceNextIndex] -
+                partitions[partitionSourcePrevIndex]);
+          }
+        }
+      } else if (parent.minimizes[siblingIndex].type === "prev") {
+        for (let i = siblingIndex; i < parent.minimizes.length; i++) {
+          if (parent.minimizes[i].type === "none") {
+            break;
+          } else {
+            let partitionSourcePrevIndex = i;
+            let partitionSourceNextIndex = i + 1;
+            sumOpenPercent +=
+              parent.minimizes[i].percent -
+              (partitions[partitionSourceNextIndex] -
+                partitions[partitionSourcePrevIndex]);
+          }
+        }
+      }
+
+      const partitionPrevIndex = siblingIndex;
+      const partitionNextIndex = siblingIndex + 1;
+      const partitionTargetPrevIndex = targetIndex;
+      const partitionTargetNextIndex = targetIndex + 1;
+
+      // const openPercent = parent.minimizes[siblingIndex].percent;
+      // const openPercentSub =
+      //   openPercent -
+      //   (partitions[partitionNextIndex] - partitions[partitionPrevIndex]);
+
+      let tolerance = 0.00002;
+
+      if (parent.minimizes[siblingIndex].type === "next") {
+        let upperOffset = 0;
+        if (partitionTargetNextIndex === partitions.length - 1) {
+          upperOffset += spliterPercent / 2;
+        }
+        for (let i = partitionTargetPrevIndex; i >= partitionNextIndex; i--) {
+          upperOffset -= spliterPercent + minimizePercent;
+          const upperLimit = partitions[partitionTargetNextIndex] + upperOffset;
+          if (partitions[i] + sumOpenPercent >= upperLimit) {
+            let childIndex = i;
+            parent.minimizes[childIndex].type = "prev";
+            parent.minimizes[childIndex].percent =
+              tolerance + partitions[i + 1] - partitions[i];
+            partitions[childIndex] = upperLimit;
+            this.evacuatePage(parent.children[childIndex]);
+          } else {
+            partitions[i] += sumOpenPercent;
+          }
+        }
+
+        // for (let i = partitionNextIndex; i <= partitionTargetPrevIndex; i++) {
+        //   partitions[i] += sumOpenPercent;
+        // }
+      } else if (parent.minimizes[siblingIndex].type === "prev") {
+        let lowerOffset = 0;
+        if (partitionTargetPrevIndex === 0) {
+          lowerOffset -= spliterPercent / 2;
+        }
+        for (let i = partitionTargetNextIndex; i <= partitionPrevIndex; i++) {
+          lowerOffset += spliterPercent + minimizePercent;
+          const lowerLimit = partitions[partitionTargetPrevIndex] + lowerOffset;
+
+          if (partitions[i] - sumOpenPercent <= lowerLimit) {
+            let childIndex = i - 1;
+            parent.minimizes[childIndex].type = "next";
+            parent.minimizes[childIndex].percent =
+              tolerance + partitions[i] - partitions[i - 1];
+            partitions[i] = lowerLimit;
+            this.evacuatePage(parent.children[childIndex]);
+          } else {
+            partitions[i] -= sumOpenPercent;
+          }
+          console.log("after", lowerLimit, partitions[i]);
+        }
+
+        // for (let i = partitionPrevIndex; i >= partitionTargetNextIndex; i--) {
+        //   partitions[i] -= sumOpenPercent;
+        // }
+      }
+
+      parent.minimizes[siblingIndex].percent = 0;
       parent.minimizes[siblingIndex].type = type;
-      //this.$forceUpdate();
+
+      const percents = this.toPercents(
+        partitions,
+        parent.minimizes,
+        minimizePercent,
+        spliterPercent
+      );
+      parent.percents = [...percents];
 
       if (type === "none") {
         this.restorePage(node);
       } else {
         this.evacuatePage(node);
       }
+    },
+    onSetMinimize(nodeId, type, percent) {
+      const node = this.findIdNode(this.root, nodeId);
+      const parent = this.getParentNode(this.root, node);
+      const siblingIndex = parent.children.findIndex(
+        (child) => child.id === node.id
+      );
+
+      if (type === "none") {
+        parent.minimizes[siblingIndex].percent = 0;
+      } else {
+        //const partitionPrevIndex = siblingIndex;
+        //const partitionNextIndex = siblingIndex + 1;
+
+        parent.minimizes[siblingIndex].percent = percent;
+        //partitions[partitionNextIndex] - partitions[partitionPrevIndex];
+      }
+      parent.minimizes[siblingIndex].type = type;
+
+      if (type === "none") {
+        this.restorePage(node);
+      } else {
+        this.evacuatePage(node);
+      }
+    },
+    onSetRect(nodeId) {
+      const nodes = this.findNodes(node, (x) => x.type === "page");
+      console.log("onSetRect");
     },
     onSetPercents(nodeId, percents) {
       //console.log("setPercents", nodeId, percents);
@@ -565,6 +719,17 @@ export default {
         e.appendChild(srcView);
       });
 
+      var el = this.$refs.container.querySelector(".split-layout__drag");
+      if (el) {
+        while (el.firstChild) {
+          el.removeChild(el.firstChild);
+        }
+        if (el.matches(".split-layout__drag--dragging")) {
+          if (this.drag && this.drag.dom && this.drag.over) {
+            el.appendChild(this.drag.dom);
+          }
+        }
+      }
       //this.$emit("layout:complete");
     });
 
@@ -581,8 +746,12 @@ export default {
             <SplitLayoutContainer
               key={node.id}
               node={node}
+              resizeable={this.resizeable}
+              onClickMinimize={this.onClickMinimize}
               onSetMinimize={this.onSetMinimize}
               onSetPercents={this.onSetPercents}
+              minimizeSize={this.minimizeSize}
+              spliterSize={this.spliterSize}
             >
               {children}
             </SplitLayoutContainer>
@@ -595,6 +764,7 @@ export default {
             <SplitLayoutTabs
               key={node.id}
               node={node}
+              closeable={this.closeable}
               onTabDragStart={this.onTabDragStart}
               onTabClose={this.onTabClose}
             >
@@ -608,7 +778,7 @@ export default {
             <div
               class={"split-layout__page"}
               active={node.active}
-              node-id={node.id}
+              node-id={"_" + node.id}
               page={node.page}
               title={node.title}
             ></div>
@@ -621,7 +791,11 @@ export default {
 
     return (
       <div class="split-layout__container" ref="container">
-        <div class="split-layout__layout" ref="layout" node-id={this.root.id}>
+        <div
+          class="split-layout__layout"
+          ref="layout"
+          node-id={"_" + this.root.id}
+        >
           {layoutRender}
         </div>
         <div class="split-layout__preview" ref="preview"></div>
@@ -693,7 +867,11 @@ export default {
 }
 
 .split-layout__drag--dragging {
+  position: absolute;
+  margin: 0;
+  padding: 0;
   display: block;
+  cursor: move;
 }
 
 .split-layout__page {

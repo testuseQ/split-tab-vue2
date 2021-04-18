@@ -18,3 +18,304 @@ loadashのディープコピー解体 ok
 
 - スライドバ―をview直下へ移動試し
 onSplitResize
+
+
+## remake
+- slot layout
+- add vue ok
+- rect 
+- split minimizeのopen時のリミット ok
+- split minimize方向そろえる ok
+- dragging gorst ok
+- simpleber done
+- closeable ok
+- openable 
+- resizeable スプリッタの移動可能か
+- editable タブのドラッグ可能か
+- save 状態をローカルストレージに保存
+
+
+
+    tabOmitted: { type: String, default: "" }, // none/alone/all
+    tabDisabled: { type: Boolean, default: false },
+    : { type: Boolean, default: true },
+    addable: { type: Boolean, default: true },
+    edit: { type: Boolean, default: true },
+    resize: { type: Boolean, default: true },
+    saveState: { type: [String], default: "query" },
+
+
+
+
+---
+
+
+    // onSetMinimize(
+    //   nodeId,
+    //   type,
+    //   percent,
+    //   open,
+    //   minimizePercent,
+    //   spliterPercent
+    // ) {
+    //   console.log(
+    //     "onSetMinimize",
+    //     nodeId,
+    //     type,
+    //     percent,
+    //     open,
+    //     minimizePercent,
+    //     spliterPercent
+    //   );
+    //   const node = this.findIdNode(this.root, nodeId);
+    //   const parent = this.getParentNode(this.root, node);
+    //   const siblingIndex = parent.children.findIndex(
+    //     (child) => child.id === node.id
+    //   );
+
+    //   let openPercent = parent.minimizes[siblingIndex].percent;
+    //   console.log(
+    //     "before",
+    //     parent.percents,
+    //     parent.percents.reduce((acc, x) => acc + x, 0)
+    //   );
+
+    //   const minimizeCountBefore = parent.minimizes.reduce(
+    //     (acc, x) => (x.type === "none" ? acc : acc + 1),
+    //     0
+    //   );
+
+    //   let minimizeCountAfter;
+    //   if (type === "none") {
+    //     minimizeCountAfter = minimizeCountBefore - 1;
+    //   } else {
+    //     minimizeCountAfter = minimizeCountBefore + 1;
+    //   }
+
+    //   //this.$set(parent.minimizes[siblingIndex], "percent", percent);
+    //   //this.$set(parent.minimizes[siblingIndex], "type", type);
+    //   if (open === true) {
+    //     let targetIndex = null;
+    //     console.log("openPercent", openPercent);
+
+    //     console.log("minimizeCountBefore", minimizeCountBefore);
+
+    //     const spliterCount = parent.minimizes.length - 1;
+    //     const minimizeSizeLot =
+    //       (minimizePercent * minimizeCountAfter +
+    //         spliterPercent * spliterCount) /
+    //       (parent.minimizes.length - minimizeCountAfter);
+
+    //     const minimizeReal = minimizePercent + minimizeSizeLot;
+
+    //     const minimizeSizeLotSingle =
+    //       minimizeReal / (parent.minimizes.length - minimizeCountBefore);
+
+    //     parent.percents = parent.percents.map((parcent, i) => {
+    //       if (parent.minimizes[i].type !== "none" && siblingIndex !== i) {
+    //         return 0;
+    //       }
+    //       return parcent - minimizeSizeLotSingle;
+    //     });
+
+    //     if (parent.minimizes[siblingIndex].type == "next") {
+    //       for (let i = siblingIndex + 1; i < parent.minimizes.length; i++) {
+    //         if (parent.minimizes[i].type === "none") {
+    //           targetIndex = i;
+    //           break;
+    //         }
+    //       }
+    //     } else if (parent.minimizes[siblingIndex].type == "prev") {
+    //       for (let i = siblingIndex - 1; i >= 0; i--) {
+    //         if (parent.minimizes[i].type === "none") {
+    //           targetIndex = i;
+    //           break;
+    //         }
+    //       }
+    //     }
+    //     let ConnectMinimizeCount = 0;
+    //     if (parent.minimizes[siblingIndex].type == "prev") {
+    //       for (let i = siblingIndex + 1; i < parent.minimizes.length; i++) {
+    //         if (parent.minimizes[i].type === "none") {
+    //           break;
+    //         } else {
+    //           ConnectMinimizeCount++;
+    //         }
+    //       }
+    //     } else if (parent.minimizes[siblingIndex].type == "next") {
+    //       for (let i = siblingIndex - 1; i >= 0; i--) {
+    //         if (parent.minimizes[i].type === "none") {
+    //           break;
+    //         } else {
+    //           ConnectMinimizeCount++;
+    //         }
+    //       }
+    //     }
+
+    //     // let truePercent =
+    //     //   openPercent -
+    //     //   (minimizeCountAfter *
+    //     //     minimizeReal *
+    //     //     (parent.minimizes.length - (minimizeCountAfter + 1))) /
+    //     //     parent.minimizes.length;
+
+    //     let truePercent =
+    //       openPercent -
+    //       (ConnectMinimizeCount *
+    //         minimizeReal *
+    //         (parent.minimizes.length - (ConnectMinimizeCount + 1))) /
+    //         parent.minimizes.length;
+    //     //+minimizeReal * (parent.minimizes.length - 1);
+
+    //     // unconnectMinimizeCount == 1  5/6
+
+    //     // ConnectMinimizeCount == 1   minimizeReal / 0.749999999999996   3/4    0.749999999999996
+    //     // ConnectMinimizeCount == 2   minimizeReal / 0.499999999999997   2/4    0.9999999999999913
+    //     // ConnectMinimizeCount == 3   minimizeReal / 0.4999999999999995     2/4  1.4999999999999978
+
+    //     //    5/6
+    //     //    5/8
+
+    //     parent.percents.splice(siblingIndex, 1, truePercent);
+
+    //     parent.percents.splice(
+    //       targetIndex,
+    //       1,
+    //       parent.percents[targetIndex] - truePercent + minimizeReal
+    //     );
+
+    //     console.log(
+    //       "after",
+    //       parent.percents,
+    //       parent.percents.reduce((acc, x) => acc + x, 0)
+    //     );
+    //     // let logSub = parent.percents[0] - parent.percents[1];
+    //     // console.log(
+    //     //   "afterinfo0-1",
+    //     //   logSub,
+    //     //   minimizeReal,
+    //     //   minimizeReal / logSub,
+    //     //   (minimizeCountAfter * minimizeReal) / logSub,
+    //     //   (minimizePercent + minimizeSizeLot * minimizeCountAfter) / logSub,
+    //     //   minimizePercent,
+    //     //   minimizePercent / logSub,
+    //     //   minimizeSizeLot / logSub
+    //     // );
+
+    //     // logSub = parent.percents[1] - parent.percents[2];
+    //     // console.log(
+    //     //   "afterinfo1-2",
+    //     //   logSub,
+    //     //   minimizeReal,
+    //     //   minimizeReal / logSub,
+    //     //   (minimizeCountAfter * minimizeReal) / logSub,
+    //     //   (minimizePercent + minimizeSizeLot * minimizeCountAfter) / logSub,
+    //     //   minimizePercent,
+    //     //   minimizePercent / logSub,
+    //     //   minimizeSizeLot / logSub
+    //     // );
+    //   }
+
+    //   console.log("#", type, openPercent, percent);
+    //   if (type === "none") {
+    //     if (parent.minimizes[siblingIndex].type == "next") {
+    //       for (let i = siblingIndex + 1; i < parent.minimizes.length; i++) {
+    //         if (parent.minimizes[i].type !== "none") {
+    //           parent.minimizes[i].percent -= openPercent;
+    //           console.log("next", i, parent.minimizes[i].percent);
+    //         } else {
+    //           break;
+    //         }
+    //       }
+    //     } else if (parent.minimizes[siblingIndex].type == "prev") {
+    //       for (let i = siblingIndex - 1; i >= 0; i--) {
+    //         if (parent.minimizes[i].type !== "none") {
+    //           parent.minimizes[i].percent -= openPercent;
+    //           console.log("prev", i, parent.minimizes[i].percent);
+    //         } else {
+    //           break;
+    //         }
+    //       }
+    //     }
+
+    //     parent.minimizes[siblingIndex].percent = percent;
+    //   } else {
+    //     if (type == "next") {
+    //       for (let i = siblingIndex + 1; i < parent.minimizes.length; i++) {
+    //         if (parent.minimizes[i].type !== "none") {
+    //           parent.minimizes[i].percent += percent;
+    //           console.log("next", i, parent.minimizes[i].percent);
+    //         } else {
+    //           break;
+    //         }
+    //       }
+    //     } else if (type == "prev") {
+    //       for (let i = siblingIndex - 1; i >= 0; i--) {
+    //         if (parent.minimizes[i].type !== "none") {
+    //           parent.minimizes[i].percent += percent;
+    //           console.log("prev", i, parent.minimizes[i].percent);
+    //         } else {
+    //           break;
+    //         }
+    //       }
+    //     }
+    //     const spliterCount = parent.minimizes.length - 1;
+    //     const minimizeSizeLot =
+    //       (minimizePercent * minimizeCountBefore +
+    //         spliterPercent * spliterCount) /
+    //       (parent.minimizes.length - minimizeCountBefore);
+    //     //   const minimizeSizeLot =
+    //     // (minimizePercent * minimizeCountAfter + spliterPercent * spliterCount)
+
+    //     const minimizeReal = minimizePercent + minimizeSizeLot;
+    //     console.log(
+    //       "close",
+    //       percent,
+    //       percent - 0.2,
+    //       (percent - 0.2) / minimizePercent,
+    //       (percent - 0.2) / spliterPercent,
+    //       (percent - 0.2) / minimizeSizeLot,
+
+    //       (((percent - 0.2) / minimizeReal) * parent.minimizes.length) /
+    //         minimizeCountBefore,
+
+    //       percent -
+    //         0.2 -
+    //         (minimizeReal * minimizeCountBefore) / parent.minimizes.length,
+    //       percent -
+    //         (minimizeReal * minimizeCountBefore) / parent.minimizes.length
+    //     );
+    //     parent.minimizes[siblingIndex].percent =
+    //       percent -
+    //       (minimizeReal * minimizeCountBefore) / parent.minimizes.length;
+    //   }
+
+    //   parent.minimizes[siblingIndex].type = type;
+    //   // if (parent.minimizes[siblingIndex].type == "next") {
+    //   //   for (let i = siblingIndex + 1; i < parent.minimizes.length; i++) {
+    //   //     if (parent.minimizes[i].type !== "none") {
+    //   //       parent.minimizes[i].percent +=
+    //   //         type === "none" ? -openPercent : openPercent;
+    //   //     } else {
+    //   //       break;
+    //   //     }
+    //   //   }
+    //   // } else if (parent.minimizes[siblingIndex].type == "prev") {
+    //   //   for (let i = siblingIndex - 1; i >= 0; i--) {
+    //   //     if (parent.minimizes[i].type !== "none") {
+    //   //       parent.minimizes[i].percent +=
+    //   //         type === "none" ? -openPercent : openPercent;
+    //   //     } else {
+    //   //       break;
+    //   //     }
+    //   //   }
+    //   // }
+
+    //   //this.$forceUpdate();
+
+    //   if (type === "none") {
+    //     this.restorePage(node);
+    //   } else {
+    //     this.evacuatePage(node);
+    //   }
+    // },

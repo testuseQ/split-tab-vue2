@@ -2,6 +2,76 @@ import Vue from 'vue';
 export default {
 
     methods: {
+
+
+        toPartitions(percents, minimizes, minimizePercent, spliterPercent) {
+            const minimizeCount = minimizes.reduce(
+                (acc, x) => (x.type === "none" ? acc : acc + 1),
+                0
+            );
+            const spliterCount = minimizes.length - 1;
+            const minimizeSizeLot =
+                (minimizePercent * minimizeCount + spliterPercent * spliterCount) /
+                (minimizes.length - minimizeCount);
+
+            const percentsReal = percents.map((parcent, i) => {
+                if (minimizes[i].type !== "none") {
+                    return minimizePercent;
+                }
+
+                return parcent - minimizeSizeLot;
+            });
+            const partitions = percentsReal
+                .reduce(
+                    (acc, x, i) =>
+                        acc.concat([
+                            x +
+                            acc.slice(-1)[0] +
+                            (i === 0 || i === percentsReal.length - 1
+                                ? spliterPercent / 2
+                                : spliterPercent),
+                        ]),
+                    [0]
+                )
+                .slice(0, -1)
+                .concat(1);
+            return partitions;
+        },
+        toPercents(partitions, minimizes, minimizePercent, spliterPercent) {
+            const percentsRealTemp = partitions
+                .slice(1)
+                .reduce(
+                    (acc, x) => acc.concat(x - acc.reduce((sum, y) => sum + y, 0)),
+                    []
+                );
+            const percentsReal = percentsRealTemp.map((x, i) => {
+                if (i === 0 || i === percentsRealTemp.length - 1) {
+                    return x - spliterPercent / 2;
+                } else {
+                    return x - spliterPercent;
+                }
+            });
+
+            const minimizeCount = minimizes.reduce(
+                (acc, x) => (x.type === "none" ? acc : acc + 1),
+                0
+            );
+            const spliterCount = minimizes.length - 1;
+            const minimizeSizeLot =
+                (minimizePercent * minimizeCount + spliterPercent * spliterCount) /
+                (minimizes.length - minimizeCount);
+
+            const percents = percentsReal.map((parcent, i) => {
+                if (minimizes[i].type !== "none") {
+                    return 0;
+                }
+
+                return parcent + minimizeSizeLot;
+            });
+            return percents;
+        },
+
+
         checkAttach(targetDom, e, amount = 33) {
             var size = amount / 100;
             var trect = targetDom.getBoundingClientRect();
@@ -198,7 +268,7 @@ export default {
                 if (allMinimized) {
                     if (siblingIndex == 0) {
 
-                        parent.percents[siblingIndex + 1] += percents[siblingIndex]
+                        parent.percents[siblingIndex + 1] += parent.percents[siblingIndex]
                         parent.minimizes[siblingIndex + 1].type = "none"
 
                         if (node.active) {
@@ -207,7 +277,7 @@ export default {
 
                     } else if (siblingIndex == siblings.length - 1) {
 
-                        parent.percents[siblingIndex - 1] += percents[siblingIndex]
+                        parent.percents[siblingIndex - 1] += parent.percents[siblingIndex]
                         parent.minimizes[siblingIndex - 1].type = "none"
 
 
@@ -216,8 +286,8 @@ export default {
                         }
                     } else {
 
-                        parent.percents[siblingIndex + 1] += percents[siblingIndex] * 0.5
-                        parent.percents[siblingIndex - 1] += percents[siblingIndex] * 0.5
+                        parent.percents[siblingIndex + 1] += parent.percents[siblingIndex] * 0.5
+                        parent.percents[siblingIndex - 1] += parent.percents[siblingIndex] * 0.5
                         parent.minimizes[siblingIndex + 1].type = "none"
                         parent.minimizes[siblingIndex - 1].type = "none"
 
@@ -227,48 +297,93 @@ export default {
                         }
                     }
 
+                    parent.children.splice(siblingIndex, 1) // remove child
+                    parent.minimizes.splice(siblingIndex, 1);
+                    parent.percents.splice(siblingIndex, 1);
                 } else {
+
                     let nextDepth = siblings.length
                     for (let i = siblingIndex + 1; i < siblings.length; i++) {
 
-                        if (!siblings[i].minimize) {
+                        if (parent.minimizes[i].type === "none") {
                             nextDepth = i - siblingIndex
                             break
                         }
                     }
                     let prevDepth = siblings.length
-
                     for (let i = siblingIndex - 1; i >= 0; i--) {
-                        if (!siblings[i].minimize) {
+                        if (parent.minimizes[i].type === "none") {
                             prevDepth = siblingIndex - i
                             break
                         }
                     }
+
+                    const parentDom = this.getNodeDom(parent, this.$el);
+                    const h = parent.dir === "horizontal";
+                    const clientSize = h ? parentDom.clientWidth : parentDom.clientHeight;
+                    const minimizePercent = this.minimizeSize / clientSize;
+                    const spliterPercent = this.spliterSize / clientSize;
+                    const partitions = this.toPartitions(
+                        parent.percents,
+                        parent.minimizes,
+                        minimizePercent,
+                        spliterPercent
+                    );
+                    const partitionPervIndex = siblingIndex;
+                    const partitionNextIndex = siblingIndex + 1;
+
+
+
+                    // const partitionPrevIndex = siblingIndex - prevDepth;
+                    // const partitionNextIndex = siblingIndex + nextDepth;
+                    let prevPercent = 0;
+                    let nextPercent = 0;
+
                     if (nextDepth > prevDepth) {
-                        parent.percents[siblingIndex - prevDepth] += parent.percents[siblingIndex]
-
+                        prevPercent = (partitions[partitionNextIndex] - partitions[partitionPervIndex])
                     } else if (nextDepth < prevDepth) {
-
-                        parent.percents[siblingIndex + nextDepth] += parent.percents[siblingIndex]
+                        nextPercent = (partitions[partitionNextIndex] - partitions[partitionPervIndex])
                     } else {
-
-                        parent.percents[siblingIndex - prevDepth] += parent.percents[siblingIndex] * 0.5
-                        parent.percents[siblingIndex + nextDepth] += parent.percents[siblingIndex] * 0.5
+                        prevPercent = (partitions[partitionNextIndex] - partitions[partitionPervIndex]) * 0.5
+                        nextPercent = (partitions[partitionNextIndex] - partitions[partitionPervIndex]) * 0.5
+                    }
+                    if (nextDepth >= prevDepth) {
+                        for (let i = partitionPervIndex - 1; i > partitionPervIndex - prevDepth; i--) {
+                            partitions[i] += prevPercent
+                        }
+                    }
+                    if (nextDepth <= prevDepth) {
+                        for (let i = partitionNextIndex + 1; i < partitionNextIndex + nextDepth; i++) {
+                            partitions[i] += nextPercent
+                        }
+                    }
+                    if (nextDepth > prevDepth) {
+                        partitions.splice(partitionPervIndex, 1);
+                    } else if (nextDepth < prevDepth) {
+                        partitions.splice(partitionNextIndex, 1);
+                    } else {
+                        let midPartition = (partitions[partitionNextIndex] + partitions[partitionPervIndex]) * 0.5
+                        partitions.splice(partitionPervIndex, 2, midPartition);
                     }
 
-
                     if (node.active) {
-                        if (nextDepth != siblings.length) {
+                        if (nextDepth !== parent.children.length) {
                             parent.children[siblingIndex + nextDepth].active = true;
                         } else {
                             parent.children[siblingIndex - prevDepth].active = true;
                         }
                     }
+                    parent.children.splice(siblingIndex, 1) // remove child
+                    parent.minimizes.splice(siblingIndex, 1);
 
+                    const percents = this.toPercents(
+                        partitions,
+                        parent.minimizes,
+                        minimizePercent,
+                        spliterPercent
+                    );
+                    parent.percents = [...percents];
                 }
-                parent.children.splice(siblingIndex, 1) // remove child
-                parent.minimizes.splice(siblingIndex, 1);
-                parent.percents.splice(siblingIndex, 1);
 
             }
         },
@@ -291,6 +406,20 @@ export default {
             return cur
         },
 
+        getNodeDom(node, dom) {
+            switch (node.type) {
+                case "root":
+                    return dom.querySelector(`.split-layout__layout[node-id=${"_" + node.id}]`)
+                case "container":
+                    return dom.querySelector(`.split-layout-container__container-${node.dir}[node-id=${"_" + node.id}]`)
+                case "tabs":
+                    return dom.querySelector(`.split-layout-tabs__tabs[node-id=${"_" + node.id}]`)
+                case "page":
+                    return dom.querySelector(`.split-layout__page[node-id=${"_" + node.id}]`)
+            }
+        },
+
+
         getNode(root, e) {
             let target = e.target;
             for (
@@ -302,7 +431,7 @@ export default {
                 console.log("must has node-id");
                 return undefined;
             }
-            const nodeId = parseInt(target.getAttribute("node-id"), 10);
+            const nodeId = Number(target.getAttribute("node-id").replace(/[^0-9]/g, ''));
             if (nodeId === undefined) {
                 console.log(" node-id is undefined");
                 return undefined;
@@ -520,24 +649,70 @@ export default {
             const size = amount / 100
             const dir = (attach === "up" || attach === "down") ? 'vertical' : 'horizontal'
             const targetParent = this.getParentNode(root, target);
-
-            const siblingIndex = targetParent.children.findIndex(x => x.id === target.id)
             const before = (attach === "up" || attach === "left")
 
-            if (targetParent != null && targetParent.dir === dir) {
+            if (targetParent.type === "root" && target.dir === dir) {
+
+                target.percents = target.percents.map(x => x * (1 - size))
+                const insertIndex = before ? 0 : target.percents.length + 1;
+
+                target.percents.splice(insertIndex, 0, size)
+                target.minimizes.splice(insertIndex, 0, { type: "none" })
+                target.children.splice(insertIndex, 0, child)
 
 
-                const targetPercent = targetParent.percents[siblingIndex]
-                targetParent.percents.splice(siblingIndex, 1, targetPercent * (1 - size))
 
+            } else if (targetParent != null && targetParent.dir === dir) {
+
+
+                const siblingIndex = targetParent.children.findIndex(x => x.id === target.id)
                 const insertIndex = before ? siblingIndex : siblingIndex + 1;
 
-                targetParent.percents.splice(insertIndex, 0, targetPercent * size)
+
+
+                const parentDom = this.getNodeDom(targetParent, this.$el);
+                const h = parent.dir === "horizontal";
+                const clientSize = h ? parentDom.clientWidth : parentDom.clientHeight;
+                const minimizePercent = this.minimizeSize / clientSize;
+                const spliterPercent = this.spliterSize / clientSize;
+                const partitions = this.toPartitions(
+                    targetParent.percents,
+                    targetParent.minimizes,
+                    minimizePercent,
+                    spliterPercent
+                );
+                const partitionPervIndex = siblingIndex;
+                const partitionNextIndex = siblingIndex + 1;
+                let percent = (partitions[partitionNextIndex] - partitions[partitionPervIndex])
+                let partition = partitions[partitionPervIndex] + (before ? size : 1 - size) * percent
+                partitions.splice(partitionNextIndex, 0, partition);
+
                 targetParent.minimizes.splice(insertIndex, 0, { type: "none" })
                 targetParent.children.splice(insertIndex, 0, child)
+                const percents = this.toPercents(
+                    partitions,
+                    targetParent.minimizes,
+                    minimizePercent,
+                    spliterPercent
+                );
+                targetParent.percents = [...percents];
+
+
+
+
+                // const targetPercent = targetParent.percents[siblingIndex]
+
+                // targetParent.percents.splice(siblingIndex, 1, targetPercent * (1 - size))
+
+                // const insertIndex = before ? siblingIndex : siblingIndex + 1;
+
+                // targetParent.percents.splice(insertIndex, 0, targetPercent * size)
+                // targetParent.minimizes.splice(insertIndex, 0, { type: "none" })
+                // targetParent.children.splice(insertIndex, 0, child)
                 //console.warn(targetParent)
 
             } else {
+                const siblingIndex = targetParent.children.findIndex(x => x.id === target.id)
                 let container = {
                     type: 'container',
                     id: this.getSequenceId(root),

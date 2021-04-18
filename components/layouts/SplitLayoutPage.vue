@@ -1,5 +1,5 @@
 <template>
-  <div class="split-layout-page__page" :page="page" :node-id="nodeId">
+  <div class="split-layout-page__page" :page="page" :node-id="'_' + nodeId">
     <keep-alive>
       <component :is="componentPage"> </component>
     </keep-alive>
@@ -12,6 +12,12 @@ export default {
     nodeId: String,
     page: String,
   },
+  // computed:{
+  //   _nodeId(){
+  //     return '_' + nodeId
+
+  //   }
+  // },
   data() {
     return {
       componentPage: () => import(`~/pages/${this.page}`),

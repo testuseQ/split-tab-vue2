@@ -1,50 +1,32 @@
 <template>
   <div class="demo-layout">
     <div class="controls">
-      <button :class="{ active: state.edit }" @click="toggleEdit">
+      <button :class="{ active: state.editable }" @click="toggleEditable">
         editable
+      </button>
+      <button :class="{ active: state.openable }" @click="toggleOpenable">
+        openable
       </button>
       <button :class="{ active: state.closeable }" @click="toggleCloseable">
         closeable
       </button>
-      <button :class="{ active: state.resize }" @click="toggleResize">
+      <button :class="{ active: state.resizeable }" @click="toggleResizeable">
         resizeable
       </button>
-      <button
-        :class="{ active: state.tabOmitted == 'alone' }"
-        @click="toggleAloneTabOmitted"
-      >
-        alone tab omitted
-      </button>
-      <button
-        :class="{ active: state.tabOmitted == 'all' }"
-        @click="toggleAllTabOmitted"
-      >
-        all tab omitted
-      </button>
-
       <button :class="{ active: state.tabDisabled }" @click="toggleTabDisabled">
         tab disabled
       </button>
-      <button
-        :class="{ active: state.saveState == 'query' }"
-        @click="saveStateQuery"
-      >
-        save query
+      <button :class="{ active: state.volatile }" @click="toggleVolatile">
+        volatile
       </button>
       <button
-        :class="{ active: state.saveState == 'local-storage' }"
-        @click="saveStateLocalStorage"
+        :class="{ active: state.outerInsertable }"
+        @click="toggleOuterInsertable"
       >
-        save local storage
+        outerInsertable
       </button>
-      <button
-        :class="{ active: state.saveState == 'cookie' }"
-        @click="saveStateCookie"
-      >
-        save cookie
-      </button>
-      <button @click="changeSplits">Change layout</button>
+
+      <button @click="changeLayout">Change layout</button>
       <div class="controls-nest">
         <span>insertAmount {{ this.state.insertAmount }}%</span>
         <input v-model="state.insertAmount" type="range" min="10" max="50" />
@@ -53,21 +35,51 @@
         <span>insertPreview {{ this.state.insertPreview }}%</span>
         <input v-model="state.insertPreview" type="range" min="10" max="50" />
       </div>
+      <div class="controls-nest">
+        <span>outerInsertAmount {{ this.state.outerInsertAmount }}%</span>
+        <input
+          v-model="state.outerInsertAmount"
+          type="range"
+          min="10"
+          max="50"
+        />
+      </div>
+      <div class="controls-nest">
+        <span>outerInsertPreview {{ this.state.outerInsertPreview }}%</span>
+        <input
+          v-model="state.outerInsertPreview"
+          type="range"
+          min="10"
+          max="50"
+        />
+      </div>
+
+      <div class="controls-nest">
+        <span>minimizeSize {{ this.state.minimizeSize }}%</span>
+        <input v-model="state.minimizeSize" type="range" min="16" max="100" />
+      </div>
+      <div class="controls-nest">
+        <span>spliterSize {{ this.state.spliterSize }}%</span>
+        <input v-model="state.spliterSize" type="range" min="1" max="100" />
+      </div>
     </div>
     <div class="demo-content">
       <SplitLayout
-        :tab-omitted="state.tabOmitted"
         :tab-disabled="state.tabDisabled"
-        :edit="state.edit"
+        :openable="state.openable"
         :closeable="state.closeable"
-        :resize="state.resize"
+        :editable="state.editable"
+        :resizeable="state.resizeable"
+        :volatile="state.volatile"
         :layouts="state.layouts"
-        :insert-amount="state.insertAmount"
-        :insert-preview="state.insertPreview"
-        :save-state="state.saveState"
-        :custom-events="state.addSplitView"
-      >
-      </SplitLayout>
+        :insert-amount="Number(state.insertAmount)"
+        :insert-preview="Number(state.insertPreview)"
+        :outer-insertable="state.outerInsertable"
+        :outer-insert-amount="Number(state.outerInsertAmount)"
+        :outer-insert-preview="Number(state.outerInsertPreview)"
+        :minimize-size="Number(state.minimizeSize)"
+        :spliter-size="Number(state.spliterSize)"
+      />
     </div>
   </div>
 </template>
@@ -175,67 +187,54 @@ export default {
   data() {
     return {
       state: {
-        tabOmitted: "",
         tabDisabled: false,
-        extraStyle: false,
-        edit: true,
+        openable: true,
         closeable: true,
-        resize: true,
+
+        editable: true,
+        resizeable: true,
+        volatile: true,
+
         layouts: layouts[0],
         layoutN: 0,
+
         insertAmount: 50,
         insertPreview: 25,
-        tab: true,
-        saveState: localStorage.saveState || "",
-        customs: this.$router.customs,
+
+        outerInsertable: true,
+        outerInsertAmount: 33,
+        outerInsertPreview: 0,
+
+        minimizeSize: 80,
+        spliterSize: 48,
       },
     };
   },
   methods: {
-    changeSplits() {
+    changeLayout() {
       this.state.layoutN = (this.state.layoutN + 1) % layouts.length;
       this.state.layouts = layouts[this.state.layoutN];
     },
-    toggleEdit() {
-      this.state.edit = !this.state.edit;
+    toggleEditable() {
+      this.state.editable = !this.state.editable;
+    },
+    toggleOpenable() {
+      this.state.openable = !this.state.openable;
     },
     toggleCloseable() {
       this.state.closeable = !this.state.closeable;
     },
-    toggleAloneTabOmitted() {
-      this.state.tabOmitted = this.state.tabOmitted === "alone" ? "" : "alone";
-    },
-    toggleAllTabOmitted() {
-      this.state.tabOmitted = this.state.tabOmitted === "all" ? "" : "all";
-    },
     toggleTabDisabled() {
       this.state.tabDisabled = !this.state.tabDisabled;
     },
-    toggleResize() {
-      this.state.resize = !this.state.resize;
+    toggleResizeable() {
+      this.state.resizeable = !this.state.resizeable;
     },
-    toggleBoth() {
-      if (this.state.edit || this.state.resize) {
-        this.state.edit = this.state.resize = false;
-        return;
-      }
-      this.state.edit = this.state.resize = true;
+    toggleVolatile() {
+      this.state.volatile = !this.state.volatile;
     },
-    toggleStyle() {
-      this.state.extraStyle = !this.state.extraStyle;
-    },
-    saveStateCookie() {
-      this.state.saveState = this.state.saveState === "cookie" ? "" : "cookie";
-      localStorage.saveState = this.state.saveState;
-    },
-    saveStateQuery() {
-      this.state.saveState = this.state.saveState === "query" ? "" : "query";
-      localStorage.saveState = this.state.saveState;
-    },
-    saveStateLocalStorage() {
-      this.state.saveState =
-        this.state.saveState === "local-storage" ? "" : "local-storage";
-      localStorage.saveState = this.state.saveState;
+    toggleOuterInsertable() {
+      this.state.outerInsertable = !this.state.outerInsertable;
     },
   },
 };

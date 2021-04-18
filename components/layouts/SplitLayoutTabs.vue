@@ -52,7 +52,7 @@ export default {
             mousedown: this.tabDragStart,
             touchstart: this.tabDragStart,
           }}
-          attrs={{ "node-id": child.id }}
+          attrs={{ "node-id": "_" + child.id }}
         >
           {tabHeaders}
         </div>
@@ -63,7 +63,7 @@ export default {
     let header = (
       <simplebar
         class={"split-layout-tabs__headers-bar"}
-        data-simplebar-auto-hide="false"
+        data-simplebar-auto-hide="true"
       >
         <div
           class={
@@ -87,8 +87,16 @@ export default {
     ) {
       content = (
         <simplebar
-          class={"split-layout-tabs__content-bar"}
-          data-simplebar-auto-hide="false"
+          class={
+            "split-layout-tabs__content-bar " +
+            (this.node.children[activeIndex].scrollX
+              ? ""
+              : " split-layout-tabs__content-bar--hidden-x") +
+            (this.node.children[activeIndex].scrollY
+              ? ""
+              : " split-layout-tabs__content-bar--hidden-y")
+          }
+          data-simplebar-auto-hide="true"
         >
           {content}
         </simplebar>
@@ -96,7 +104,7 @@ export default {
     }
 
     return (
-      <div class="split-layout-tabs__tabs" node-id={this.node.id}>
+      <div class="split-layout-tabs__tabs" node-id={"_" + this.node.id}>
         {[header, content]}
       </div>
     );
@@ -122,7 +130,31 @@ export default {
 .split-layout-tabs__content {
   height: 100%;
 }
+.split-layout-tabs__content-bar--hidden-x
+  > .simplebar-track.simplebar-horizontal {
+  visibility: hidden !important;
+}
+.split-layout-tabs__content-bar--hidden-y
+  > .simplebar-track.simplebar-vertical {
+  visibility: hidden !important;
+}
 
+/* .split-layout-tabs__content-bar--hidden-x
+  > .simplebar-wrapper
+  > .simplebar-mask
+  > .simplebar-offset
+  > .simplebar-content-wrapper
+  > .simplebar-content {
+  overflow-x: hidden;
+}
+.split-layout-tabs__content-bar--hidden-y
+  > .simplebar-wrapper
+  > .simplebar-mask
+  > .simplebar-offset
+  > .simplebar-content-wrapper
+  > .simplebar-content {
+  overflow-y: hidden;
+} */
 .split-layout-tabs__headers {
   display: flex;
   flex-direction: row;
@@ -172,6 +204,7 @@ export default {
 .split-layout-tabs__header-title {
   margin-right: 0.5em;
   white-space: nowrap;
+  pointer-events: none;
 }
 .split-layout-tabs__header-close {
   display: flex;

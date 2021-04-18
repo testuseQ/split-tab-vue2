@@ -1,135 +1,49 @@
 <script>
-const minimizeSize = 16;
-const spliterSize = 1;
+import SplitLayoutTree from "./SplitLayoutTree.js";
 export default {
   props: {
     node: { type: [String, Number, Object], default: () => ({}) },
     resizeable: { type: Boolean, default: true },
+    minimizeSize: { type: Number, default: 80 },
+    spliterSize: { type: Number, default: 48 },
   },
+  mixins: [SplitLayoutTree],
   data() {
     return {
       resizing: false,
     };
   },
   methods: {
-    toPartitions(percents, minimizes, minimizePerent, spliterPerent) {
-      const minimizeCount = minimizes.reduce(
-        (acc, x) => (x.type === "none" ? acc : acc + 1),
-        0
-      );
-      const spliterCount = minimizes.length - 1;
-      const minimizeSizeLot =
-        (minimizePerent * minimizeCount + spliterPerent * spliterCount) /
-        (minimizes.length - minimizeCount);
+    canEdit(e) {
+      //console.log("canEdit");
+      if (e.button !== 0 && e.touches == null) return;
 
-      const percentsReal = percents.map((parcent, i) => {
-        if (this.node.minimizes[i].type !== "none") {
-          return minimizePerent;
-        }
+      const h = this.node.dir === "horizontal";
+      const clientSize = h ? this.$el.clientWidth : this.$el.clientHeight;
 
-        return parcent - minimizeSizeLot;
-      });
-      // const startPercentsReal = percents.map((parcent, i) => {
-      //   if (this.node.minimizes[i].type !== "none") {
-      //     return minimizePerent;
-      //   }
+      const minimizeCount = this.node.minimizes.length;
+      const spliterCount = this.node.minimizes.length - 1;
+      const fixSize =
+        this.minimizeSize * minimizeCount + this.spliterSize * spliterCount;
 
-      //   let amount = 0;
-      //   if (i !== 0) {
-      //     amount += spliterPerent / 2;
-      //   }
-      //   for (let j = i - 1; j >= 0; j--) {
-      //     if (this.node.minimizes[j].type === "none") break;
-      //     amount += minimizePerent / 2;
-      //   }
-      //   if (i !== startPercents.length - 1) {
-      //     amount += spliterPerent / 2;
-      //   }
-      //   for (let j = i + 1; j < startPercents.length; j++) {
-      //     if (this.node.minimizes[j].type === "none") break;
-      //     amount += minimizePerent / 2;
-      //   }
-      //   return parcent - amount;
-      // });
-      const partitions = percentsReal
-        .reduce(
-          (acc, x, i) =>
-            acc.concat([
-              x +
-                acc.slice(-1)[0] +
-                (i === 0 || i === percentsReal.lenght - 1
-                  ? spliterPerent / 2
-                  : spliterPerent),
-            ]),
-          [0]
-        )
-        .slice(0, -1)
-        .concat(1);
-      // console.log("1--toPartitions--");
-
-      // console.log("partitions", partitions);
-      // console.log(
-      //   "percentsReal",
-      //   percentsReal,
-      //   percentsReal.reduce((acc, x) => acc + x, 0)
-      // );
-      // console.log(
-      //   "percents",
-      //   percents,
-      //   percents.reduce((acc, x) => acc + x, 0)
-      // );
-      return partitions;
+      if (clientSize <= fixSize) {
+        console.log("stopPropagation");
+        e.stopPropagation();
+      }
     },
-    toPercents(partitions, minimizes, minimizePerent, spliterPerent) {
-      const percentsReal = partitions
-        .slice(1)
-        .reduce(
-          (acc, x) => acc.concat(x - acc.reduce((sum, y) => sum + y, 0)),
-          []
-        )
-        .map(
-          (x, i) =>
-            x -
-            (i === 0 || i === partitions.lenght - 2
-              ? spliterPerent / 2
-              : spliterPerent)
-        );
-
-      const minimizeCount = minimizes.reduce(
-        (acc, x) => (x.type === "none" ? acc : acc + 1),
-        0
-      );
-      const spliterCount = minimizes.length - 1;
-      const minimizeSizeLot =
-        (minimizePerent * minimizeCount + spliterPerent * spliterCount) /
-        (minimizes.length - minimizeCount);
-
-      const percents = percentsReal.map((parcent, i) => {
-        if (this.node.minimizes[i].type !== "none") {
-          return 0;
-        }
-
-        return parcent + minimizeSizeLot;
-      });
-
-      // console.log("2--toPercents--");
-
-      // console.log("partitions", partitions);
-      // console.log(
-      //   "percentsReal",
-      //   percentsReal,
-      //   percentsReal.reduce((acc, x) => acc + x, 0)
-      // );
-      // console.log(
-      //   "percents",
-      //   percents,
-      //   percents.reduce((acc, x) => acc + x, 0)
-      // );
-      return percents;
-    },
-
     openMinimize(index, e) {
-      this.$emit("setMinimize", this.node.children[index].id, "none", 0);
+      if (!this.resizeable) return;
+      const h = this.node.dir === "horizontal";
+      const clientSize = h ? this.$el.clientWidth : this.$el.clientHeight;
+      const minimizePercent = this.minimizeSize / clientSize;
+      const spliterPercent = this.spliterSize / clientSize;
+      this.$emit(
+        "clickMinimize",
+        this.node.children[index].id,
+        "none",
+        minimizePercent,
+        spliterPercent
+      );
     },
     startResize(index, e) {
       if (e.button !== 0 && e.touches == null) return;
@@ -143,86 +57,67 @@ export default {
 
       const h = this.node.dir === "horizontal";
       const clientSize = h ? this.$el.clientWidth : this.$el.clientHeight;
-      const minimizePerent = minimizeSize / clientSize;
-      const spliterPerent = spliterSize / clientSize;
+      const minimizePercent = this.minimizeSize / clientSize;
+      const spliterPercent = this.spliterSize / clientSize;
 
       const startMinimizes = this.node.minimizes.map((x) => ({ ...x }));
       const startPercents = [...this.node.percents];
       const startPartitions = this.toPartitions(
         this.node.percents,
         this.node.minimizes,
-        minimizePerent,
-        spliterPerent
+        minimizePercent,
+        spliterPercent
       );
-
-      // const startPercentsReal = startPercents.map((parcent, i) => {
-      //   if (this.node.minimizes[i].type !== "none") {
-      //     return minimizePerent;
-      //   }
-
-      //   let amount = 0;
-      //   if (i !== 0) {
-      //     amount += spliterPerent / 2;
-      //   }
-      //   for (let j = i - 1; j >= 0; j--) {
-      //     if (this.node.minimizes[j].type === "none") break;
-      //     amount += minimizePerent / 2;
-      //   }
-      //   if (i !== startPercents.length - 1) {
-      //     amount += spliterPerent / 2;
-      //   }
-      //   for (let j = i + 1; j < startPercents.length; j++) {
-      //     if (this.node.minimizes[j].type === "none") break;
-      //     amount += minimizePerent / 2;
-      //   }
-      //   return parcent - amount;
-      // });
-
-      // const startPartitions = startPercents
-      //   .reduce(
-      //     (acc, x, i) =>
-      //       acc.concat([
-      //         x +
-      //           acc.slice(-1)[0] +
-      //           (i === 0 || i === startPercents.lenght - 1
-      //             ? spliterPerent / 2
-      //             : spliterPerent),
-      //       ]),
-      //     [0]
-      //   )
-      //   .slice(0, -1)
-      //   .concat(1);
 
       const drag = (event) => {
         //console.log("drag");
         const mousePos = h ? event.clientX : event.clientY;
-        const perentRect = this.$el.getBoundingClientRect();
-        const perentRectPos = h ? perentRect.left : perentRect.top;
+        const percentRect = this.$el.getBoundingClientRect();
+        const percentRectPos = h ? percentRect.left : percentRect.top;
         const clientSize = h ? this.$el.clientWidth : this.$el.clientHeight;
-        const minimizePerent = minimizeSize / clientSize;
-        const spliterPerent = spliterSize / clientSize;
+        const minimizePercent = this.minimizeSize / clientSize;
+        const spliterPercent = this.spliterSize / clientSize;
 
         const partitions = this.toPartitions(
           this.node.percents,
           this.node.minimizes,
-          minimizePerent,
-          spliterPerent
+          minimizePercent,
+          spliterPercent
         );
 
-        let upperOffset = spliterPerent;
-        const upperAdder = spliterPerent + minimizePerent;
-        let lowerOffset = -spliterPerent;
-        const lowerAdder = -(spliterPerent + minimizePerent);
+        let upperOffset = 0;
+        const upperAdder = spliterPercent + minimizePercent;
+        let lowerOffset = 0;
+        const lowerAdder = -(spliterPercent + minimizePercent);
 
-        let partition = (mousePos - perentRectPos) / clientSize;
+        let partition = (mousePos - percentRectPos) / clientSize;
 
+        let tolerance = 0.00002;
         const partitionIndex = index + 1;
         const partitionUpperLimit =
           1 -
-          upperAdder * (partitions.length - partitionIndex - 1) +
-          spliterPerent / 2;
+          (spliterPercent + minimizePercent) *
+            (partitions.length - partitionIndex - 1) +
+          spliterPercent / 2 +
+          tolerance;
         const partitionLowerLimit =
-          0 - lowerAdder * partitionIndex - spliterPerent / 2;
+          0 +
+          (spliterPercent + minimizePercent) * partitionIndex -
+          spliterPercent / 2 -
+          tolerance;
+        let overLowerLimitTolerance = 0;
+        let overUpperLimitTolerance = 0;
+        if (partition < partitionLowerLimit + tolerance) {
+          overLowerLimitTolerance = partitionLowerLimit + tolerance - partition;
+          if (overLowerLimitTolerance > tolerance)
+            overLowerLimitTolerance = tolerance;
+        } else if (partition > partitionUpperLimit - tolerance) {
+          overUpperLimitTolerance =
+            partition - (partitionUpperLimit - tolerance);
+          if (overUpperLimitTolerance > tolerance)
+            overUpperLimitTolerance = tolerance;
+        }
+
         if (partition < partitionLowerLimit) {
           partition = partitionLowerLimit;
         } else if (partition > partitionUpperLimit) {
@@ -234,7 +129,8 @@ export default {
         //   .slice(0, -1)
         //   .concat(1);
 
-        partitions[partitionIndex] = partition;
+        partitions[partitionIndex] =
+          partition + overLowerLimitTolerance - overUpperLimitTolerance;
 
         //console.log(this.node.percents, partitions, startPartitions);
 
@@ -242,14 +138,25 @@ export default {
         for (let i = partitionIndex + 1; i < startPartitions.length; i++) {
           let j = i - 1;
           upperOffset += upperAdder;
+          if (i === startPartitions.length - 1)
+            upperOffset -= spliterPercent / 2;
           if (partition + upperOffset >= startPartitions[i]) {
-            partitions[i] = partition + upperOffset - spliterPerent;
+            partitions[i] = partition + upperOffset - overUpperLimitTolerance;
             if (this.node.minimizes[j].type === "none") {
               this.$emit(
                 "setMinimize",
                 this.node.children[j].id,
                 "prev",
-                startPercents[j]
+                startMinimizes[j].type === "none"
+                  ? startPartitions[i] - startPartitions[i - 1]
+                  : startMinimizes[j].percent
+              );
+            } else if (this.node.minimizes[j].type === "next") {
+              this.$emit(
+                "setMinimize",
+                this.node.children[j].id,
+                "prev",
+                startMinimizes[j].percent
               );
             }
           } else {
@@ -258,6 +165,16 @@ export default {
               startMinimizes[j].type === "none"
             ) {
               this.$emit("setMinimize", this.node.children[j].id, "none", 0);
+            } else if (
+              startMinimizes[j].type === "next" &&
+              this.node.minimizes[j].type === "prev"
+            ) {
+              this.$emit(
+                "setMinimize",
+                this.node.children[j].id,
+                "next",
+                startMinimizes[j].percent
+              );
             }
           }
         }
@@ -265,14 +182,26 @@ export default {
         for (let i = partitionIndex - 1; i >= 0; i--) {
           let j = i;
           lowerOffset += lowerAdder;
+          if (i === 0) lowerOffset += spliterPercent / 2;
+
           if (partition + lowerOffset <= startPartitions[i]) {
-            partitions[i] = partition + lowerOffset + spliterPerent;
+            partitions[i] = partition + lowerOffset + overLowerLimitTolerance;
+
             if (this.node.minimizes[j].type === "none") {
               this.$emit(
                 "setMinimize",
                 this.node.children[j].id,
                 "next",
-                startPercents[j]
+                startMinimizes[j].type === "none"
+                  ? startPartitions[i + 1] - startPartitions[i]
+                  : startMinimizes[j].percent
+              );
+            } else if (this.node.minimizes[j].type === "prev") {
+              this.$emit(
+                "setMinimize",
+                this.node.children[j].id,
+                "next",
+                startMinimizes[j].percent
               );
             }
           } else {
@@ -281,24 +210,50 @@ export default {
               startMinimizes[j].type === "none"
             ) {
               this.$emit("setMinimize", this.node.children[j].id, "none", 0);
+            } else if (
+              startMinimizes[j].type === "prev" &&
+              this.node.minimizes[j].type === "next"
+            ) {
+              this.$emit(
+                "setMinimize",
+                this.node.children[j].id,
+                "prev",
+                startMinimizes[j].percent
+              );
             }
           }
         }
         //}
-        if (partition > startPartitions[partitionIndex]) {
+        if (partitions[partitionIndex] > startPartitions[partitionIndex]) {
           let j = partitionIndex - 1;
           if (
             this.node.minimizes[j].type !== "none" &&
-            startMinimizes[j].type !== "none"
+            startMinimizes[j].type !== "none" &&
+            partitions[partitionIndex] - partitions[partitionIndex - 1] >
+              minimizePercent +
+                (partitionIndex - 1 === 0
+                  ? spliterPercent / 2
+                  : spliterPercent) +
+                tolerance
           ) {
+            //console.log("##b");
             this.$emit("setMinimize", this.node.children[j].id, "none", 0);
           }
-        } else if (partition < startPartitions[partitionIndex]) {
+        } else if (
+          partitions[partitionIndex] < startPartitions[partitionIndex]
+        ) {
           let j = partitionIndex;
           if (
             this.node.minimizes[j].type !== "none" &&
-            startMinimizes[j].type !== "none"
+            startMinimizes[j].type !== "none" &&
+            partitions[partitionIndex + 1] - partitions[partitionIndex] >
+              minimizePercent +
+                (partitionIndex + 1 === partitions.length - 1
+                  ? spliterPercent / 2
+                  : spliterPercent) +
+                tolerance
           ) {
+            //console.log("##a");
             this.$emit("setMinimize", this.node.children[j].id, "none", 0);
           }
         }
@@ -312,8 +267,8 @@ export default {
         const percents = this.toPercents(
           partitions,
           this.node.minimizes,
-          minimizePerent,
-          spliterPerent
+          minimizePercent,
+          spliterPercent
         );
         //console.log(partitions, percents);
         this.$emit("setPercents", this.node.id, percents);
@@ -335,7 +290,11 @@ export default {
   },
   render(h) {
     //console.log(this.$slots.default.length, this.node.children.length);
-
+    // console.log(
+    //   "render",
+    //   this.node.percents,
+    //   this.node.percents.reduce((acc, x) => acc + x, 0)
+    // );
     // minimize count
     const minimizeCount = this.node.minimizes.reduce(
       (acc, x) => (x.type === "none" ? acc : acc + 1),
@@ -343,7 +302,7 @@ export default {
     );
     const spliterCount = this.node.minimizes.length - 1;
     const minimizeSizeLot =
-      (minimizeSize * minimizeCount + spliterSize * spliterCount) /
+      (this.minimizeSize * minimizeCount + this.spliterSize * spliterCount) /
       (this.node.minimizes.length - minimizeCount);
 
     const items = [];
@@ -381,11 +340,16 @@ export default {
               ? "left"
               : "right"
             : this.node.minimizes[i].type === "prev"
-            ? "down"
-            : "up";
+            ? "up"
+            : "down";
         items.push(
           <div
             class={"split-layout-container__minimize-" + this.node.dir}
+            attrs={{
+              style: `${this.node.dir === "horizontal" ? "width" : "height"}: ${
+                this.minimizeSize
+              }px;`,
+            }}
             on={{
               mousedown: this.openMinimize.bind(this, i),
               touchstart: this.openMinimize.bind(this, i),
@@ -403,6 +367,9 @@ export default {
         items.push(
           <div
             class="split-layout-container__splitter"
+            attrs={{
+              style: `flex-basis: ${this.spliterSize}px;`,
+            }}
             splitter-id={i}
             on={{
               mousedown: this.startResize.bind(this, i),
@@ -414,7 +381,13 @@ export default {
     }
     //console.log("split-layout-container__container", this.node);
     return (
-      <div class={"split-layout-container__container-" + this.node.dir}>
+      <div
+        class={"split-layout-container__container-" + this.node.dir}
+        node-id={"_" + this.node.id}
+        on={{
+          "!mousedown": this.canEdit,
+        }}
+      >
         {items}
       </div>
     );
@@ -464,10 +437,8 @@ export default {
 
 .split-layout-container__minimize-horizontal {
   height: 100%;
-  width: 16px;
 }
 .split-layout-container__minimize-vertical {
-  height: 16px;
   width: 100%;
 }
 
@@ -484,7 +455,6 @@ export default {
 }
 
 .split-layout-container__splitter {
-  flex-basis: 1px;
   position: relative;
   background: rgb(212, 212, 212);
   transition: all 0.3s;
