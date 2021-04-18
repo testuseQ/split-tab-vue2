@@ -14,7 +14,7 @@ export default (context, inject) => {
         }
         if (from.path == '/demoLayout') {
             console.log("demoLayout")
-            context.$eventHub.$emit('add-view', {
+            context.$eventHub.$emit('open-page', {
                 page: to.path.replace("/", ""),
                 key: to.name || to.path.replace("/", ""),
                 title: to.name || to.path.replace("/", "")

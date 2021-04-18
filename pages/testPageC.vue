@@ -1,83 +1,36 @@
 <template>
-  <v-data-table
-    :headers="headers"
-    :items="desserts"
-    item-key="name"
-    sort-by="name"
-    group-by="category"
-    class="elevation-1"
-    show-group-by
-  ></v-data-table>
+  <dir class="test-page-c__panel">
+    <dir class="test-page-c__text">
+      {{ rect.width + "," + rect.height }}
+    </dir>
+    <v-text-field label="input" v-model="value"></v-text-field>
+
+    <v-btn @click="apply"> apply </v-btn>
+  </dir>
 </template>
 
 <script>
 export default {
-  props: {},
+  props: { rect: Object, default: () => ({ width: 200, height: 200 }) },
   data() {
     return {
-      headers: [
-        {
-          text: 'Dessert (100g serving)',
-          align: 'start',
-          value: 'name',
-          groupable: false,
-        },
-        { text: 'Category', value: 'category', align: 'right' },
-        { text: 'Dairy', value: 'dairy', align: 'right' },
-      ],
-      desserts: [
-        {
-          name: 'Frozen Yogurt',
-          category: 'Ice cream',
-          dairy: 'Yes',
-        },
-        {
-          name: 'Ice cream sandwich',
-          category: 'Ice cream',
-          dairy: 'Yes',
-        },
-        {
-          name: 'Eclair',
-          category: 'Cookie',
-          dairy: 'Yes',
-        },
-        {
-          name: 'Cupcake',
-          category: 'Pastry',
-          dairy: 'Yes',
-        },
-        {
-          name: 'Gingerbread',
-          category: 'Cookie',
-          dairy: 'No',
-        },
-        {
-          name: 'Jelly bean',
-          category: 'Candy',
-          dairy: 'No',
-        },
-        {
-          name: 'Lollipop',
-          category: 'Candy',
-          dairy: 'No',
-        },
-        {
-          name: 'Honeycomb',
-          category: 'Toffee',
-          dairy: 'No',
-        },
-        {
-          name: 'Donut',
-          category: 'Pastry',
-          dairy: 'Yes',
-        },
-        {
-          name: 'KitKat',
-          category: 'Candy',
-          dairy: 'Yes',
-        },
-      ],
-    }
+      value: "",
+    };
   },
-}
+  methods: {
+    apply(e) {
+      console.log("apply");
+    },
+  },
+};
 </script>
+<style scoped>
+.test-page-c__panel {
+  height: 500px;
+  width: 500px;
+  background: linear-gradient(-135deg, #b2e91b, #10128f);
+}
+.test-page-c__text {
+  color: #000000;
+}
+</style>

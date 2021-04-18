@@ -6,6 +6,7 @@ export default {
     resizeable: { type: Boolean, default: true },
     minimizeSize: { type: Number, default: 80 },
     spliterSize: { type: Number, default: 48 },
+    spliterExtendSize: { type: Number, default: 4 },
   },
   mixins: [SplitLayoutTree],
   data() {
@@ -44,6 +45,8 @@ export default {
         minimizePercent,
         spliterPercent
       );
+
+      this.$emit("setRect", this.node, true);
     },
     startResize(index, e) {
       if (e.button !== 0 && e.touches == null) return;
@@ -272,6 +275,8 @@ export default {
         );
         //console.log(partitions, percents);
         this.$emit("setPercents", this.node.id, percents);
+
+        this.$emit("setRect", this.node, true);
       };
 
       const drop = (event) => {
@@ -375,7 +380,18 @@ export default {
               mousedown: this.startResize.bind(this, i),
               touchstart: this.startResize.bind(this, i),
             }}
-          ></div>
+          >
+            <div
+              class="split-layout-container__splitter-handle"
+              attrs={{
+                style:
+                  `top: -${this.spliterExtendSize}px;` +
+                  `right: -${this.spliterExtendSize}px;` +
+                  `bottom: -${this.spliterExtendSize}px;` +
+                  `left: -${this.spliterExtendSize}px;`,
+              }}
+            ></div>
+          </div>
         );
       }
     }
@@ -465,7 +481,7 @@ export default {
   transition: all 0.3s;
 }
 
-.split-layout-container__splitter::after {
+/* .split-layout-container__splitter::after {
   position: absolute;
   content: " ";
   z-index: 10;
@@ -474,8 +490,19 @@ export default {
   right: -4px;
   bottom: -4px;
   left: -4px;
+} */
+.split-layout-container__splitter-handle {
+  position: absolute;
+  content: " ";
+  z-index: 10;
+  transition: all 0.1s;
+  /* transition-delay: 0.5s;
+  transition-property: background; */
 }
-
+/* 
+.split-layout-container__splitter-handle:hover {
+  background: rgb(0, 127, 212);
+} */
 .split-layout-container__container-horizontal
   > .split-layout-container__splitter {
   cursor: ew-resize;

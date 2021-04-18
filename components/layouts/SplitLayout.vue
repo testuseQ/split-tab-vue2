@@ -13,7 +13,7 @@ export default {
     resizeable: { type: Boolean, default: true },
     saveing: { type: Boolean, default: true },
 
-    layouts: { type: [String, Number, Object], default: () => ({}) },
+    layouts: { type: Object, default: () => ({}) },
 
     insertAmount: { type: [String, Number], default: 33 },
     insertPreview: { type: [String, Number], default: 33 },
@@ -22,8 +22,8 @@ export default {
     outerInsertAmount: { type: [String, Number], default: 33 },
     outerInsertPreview: { type: [String, Number], default: 0 },
 
-    minimizeSize: { type: Number, default: 80 },
-    spliterSize: { type: Number, default: 48 },
+    minimizeSize: { type: Number, default: 16 },
+    spliterSize: { type: Number, default: 8 },
   },
   components: { SplitLayoutPages, SplitLayoutTabs, SplitLayoutContainer },
 
@@ -46,31 +46,36 @@ export default {
     layouts() {
       console.log("watch splits");
       this.root = this.calcLayouts();
+      this.onSetRect(this.root);
     },
+  },
 
-    // root: {
-    //   handler: function (val, oldVal) {
-    //     console.log("watch root");
-    //   },
-    //   deep: true,
-    // },
+  mounted() {
+    if (this.$eventHub) {
+      console.log("this.$eventHub.$on");
+      this.$eventHub.$on("open-page", this.openPage);
+    }
+    window.addEventListener("resize", this.handleResize);
   },
 
   beforeDestroy() {
     if (this.$eventHub) {
       console.log("rthis.$eventHub.$off");
-      this.$eventHub.$off("add-view", this.addView);
+      this.$eventHub.$off("open-page", this.openPage);
     }
-  },
-
-  created() {
-    if (this.$eventHub) {
-      console.log("this.$eventHub.$on");
-      this.$eventHub.$on("add-view", this.addView);
-    }
+    window.removeEventListener("resize", this.handleResize);
   },
   methods: {
-    addView(args) {
+    handleResize() {
+      this.onSetRect(this.root);
+    },
+    onSetRect(node, nextTick) {
+      if (node == null) return;
+      const nodes = this.findNodes(node, (x) => x.type === "page");
+      nodes.forEach((x) => this.$eventHub.$emit("set-rect-" + x.id, nextTick));
+      console.log("onSetRect");
+    },
+    openPage(args) {
       let { page, key, title, tabs, scroll, scrollX, scrollY } = args;
       key = key ?? page;
       title = title ?? page;
@@ -78,7 +83,7 @@ export default {
       scrollX = scroll ?? scrollX ?? true;
       scrollY = scroll ?? scrollY ?? true;
 
-      console.log("router addView");
+      console.log("router addPage");
       let target = this.findNode(this.root, (x) => x.key === key);
 
       if (target != null) {
@@ -140,8 +145,12 @@ export default {
       if (this.tabDisabled) {
         return;
       }
-      this.setTabActive(this.root, node);
+      const beforeActive = node.active;
 
+      this.setTabActive(this.root, node);
+      if (!beforeActive) {
+        this.onSetRect(node, false);
+      }
       // this.save();
       if (!this.editable) {
         return;
@@ -179,11 +188,19 @@ export default {
         this.drag.on = true;
         console.log("this.drag.on", this.drag);
         this.stringify = this.serializeTree(this.root);
+
+        const ancestorContainer = this.getAncestorNode(
+          this.root,
+          this.drag.node,
+          (x) => x.type === "container"
+        );
         this.removeNode(this.root, this.drag.node);
 
         if (this.drag.nextActive != null) {
           this.drag.nextActive.active = true;
         }
+
+        this.onSetRect(ancestorContainer, false);
       }
 
       this.drag.over = null; // reset over
@@ -315,19 +332,33 @@ export default {
         insertIndex
       );
 
+      const ancestorContainer = this.getAncestorNode(
+        this.root,
+        this.drag.node,
+        (x) => x.type === "container"
+      );
+      this.onSetRect(ancestorContainer, false);
+
       this.drag = null;
       console.log("onTabDrop");
+
       //this.save();
     },
     onTabClose(e) {
       if (e.button !== 0) return;
       console.log("layout onTabClose");
 
-      let node = this.getNode(this.root, e);
+      const node = this.getNode(this.root, e);
       if (node === undefined) {
         console.log(" node is undefined");
         return;
       }
+      //const parent = this.getParentNode(this.root, node);
+      const ancestorContainer = this.getAncestorNode(
+        this.root,
+        node,
+        (x) => x.type === "container"
+      );
 
       e.preventDefault();
       e.stopPropagation();
@@ -335,6 +366,9 @@ export default {
       let nextActive = this.getNextActive(this.root, node);
       this.removeNode(this.root, node);
       this.setTabActive(this.root, nextActive);
+
+      console.log("onTabClose", ancestorContainer);
+      this.onSetRect(ancestorContainer, false);
 
       //this.save();
     },
@@ -534,10 +568,6 @@ export default {
         this.evacuatePage(node);
       }
     },
-    onSetRect(nodeId) {
-      const nodes = this.findNodes(node, (x) => x.type === "page");
-      console.log("onSetRect");
-    },
     onSetPercents(nodeId, percents) {
       //console.log("setPercents", nodeId, percents);
       const node = this.findIdNode(this.root, nodeId);
@@ -734,6 +764,9 @@ export default {
     });
 
     let renderPages = {};
+    if (this.drag && this.drag.on && this.drag.node) {
+      renderPages[this.drag.node.id] = this.drag.node.page;
+    }
     const walkRender = (node) => {
       if (node == null) return null;
       switch (node.type) {
@@ -750,6 +783,7 @@ export default {
               onClickMinimize={this.onClickMinimize}
               onSetMinimize={this.onSetMinimize}
               onSetPercents={this.onSetPercents}
+              onSetRect={this.onSetRect}
               minimizeSize={this.minimizeSize}
               spliterSize={this.spliterSize}
             >
@@ -767,6 +801,7 @@ export default {
               closeable={this.closeable}
               onTabDragStart={this.onTabDragStart}
               onTabClose={this.onTabClose}
+              onSetRect={this.onSetRect}
             >
               {children}
             </SplitLayoutTabs>

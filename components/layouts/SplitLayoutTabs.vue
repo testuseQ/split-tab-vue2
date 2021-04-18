@@ -101,6 +101,10 @@ export default {
           {content}
         </simplebar>
       );
+    } else {
+      content = (
+        <div class={"split-layout-tabs__content-bar-dummy"}>{content}</div>
+      );
     }
 
     return (
@@ -122,11 +126,12 @@ export default {
 .split-layout-tabs__headers-bar {
   height: 2em;
 }
-
 .split-layout-tabs__content-bar {
   height: calc(100% - 2em);
 }
-
+.split-layout-tabs__content-bar-dummy {
+  height: calc(100% - 2em);
+}
 .split-layout-tabs__content {
   height: 100%;
 }
@@ -192,7 +197,7 @@ export default {
 
   display: flex;
   flex-direction: row-reverse;
-  background-color: #8d4f4f;
+  background-color: rgb(231, 234, 237);
 }
 .split-layout-tabs__headers.active > .split-layout-tabs__header.active {
   color: black;
