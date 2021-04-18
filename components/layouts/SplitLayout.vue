@@ -58,7 +58,6 @@ export default {
 
   mounted() {
     if (this.$eventHub) {
-      console.log("this.$eventHub.$on");
       this.$eventHub.$on("open-page", this.openPage);
     }
     window.addEventListener("resize", this.handleResize);
@@ -66,7 +65,6 @@ export default {
 
   beforeDestroy() {
     if (this.$eventHub) {
-      console.log("rthis.$eventHub.$off");
       this.$eventHub.$off("open-page", this.openPage);
     }
     window.removeEventListener("resize", this.handleResize);
@@ -96,15 +94,14 @@ export default {
       scrollX = scroll ?? scrollX ?? true;
       scrollY = scroll ?? scrollY ?? true;
 
-      console.log("router addPage");
-      let target = this.findNode(this.root, (x) => x.key === key);
+      const target = this.findNode(this.root, (x) => x.key === key);
 
       if (target != null) {
         if (this.tabDisabled) return;
         this.setTabActive(this.root, target);
       } else {
         if (!this.openable) return;
-        let newNode = {
+        const newNode = {
           type: "page",
           id: this.getSequenceId(this.root),
           page,
@@ -115,13 +112,13 @@ export default {
           scrollX,
           scrollY,
         };
-        let parent = this.findNode(
+        const parent = this.findNode(
           this.root,
           (x) => x.type === "tabs" && x.active
         );
 
         if (parent) {
-          let insertIndex = parent.children.findIndex((x) => x.active);
+          const insertIndex = parent.children.findIndex((x) => x.active);
 
           this.attachTabChild(
             this.root,
@@ -131,12 +128,8 @@ export default {
             null,
             insertIndex + 1
           );
-
-          console.log("Layout parent", parent);
         } else {
           this.attachTabChild(this.root, this.root, newNode, "center", null);
-
-          console.log("Layout view root", newNode);
         }
       }
 
@@ -145,19 +138,14 @@ export default {
     onTabDragStart(e) {
       if (e.button !== 0) return;
 
-      console.log("onTabDragStart");
-      let node = this.getNode(this.root, e);
+      const node = this.getNode(this.root, e);
+      if (node === undefined) return;
 
-      if (node === undefined) {
-        console.log(" node is undefined");
-        return;
-      }
       e.preventDefault();
       e.stopPropagation();
 
-      if (this.tabDisabled) {
-        return;
-      }
+      if (this.tabDisabled) return;
+
       const beforeActive = node.active;
 
       this.setTabActive(this.root, node);
@@ -169,14 +157,13 @@ export default {
         return;
       }
 
-      let nextActive = this.getNextActive(this.root, node);
+      const nextActive = this.getNextActive(this.root, node);
       const containerRect = this.$refs.container.getBoundingClientRect();
       const trect = e.target.getBoundingClientRect(); // Target is draggable
 
       let dom = e.target;
       dom = this.getAncestorDom(dom, ".split-layout-tabs__header");
       dom = dom.cloneNode(true);
-      console.log("drag dom", dom);
       this.drag = {
         node,
         offset: { x: e.clientX - trect.left, y: e.clientY - trect.top },
@@ -199,7 +186,6 @@ export default {
       e.stopPropagation();
       if (!this.drag.on) {
         this.drag.on = true;
-        console.log("this.drag.on", this.drag);
         this.stringify = this.serializeTree(this.root);
 
         const ancestorContainer = this.getAncestorNode(
@@ -217,7 +203,6 @@ export default {
       }
 
       this.drag.over = null; // reset over
-      //console.log("onTabDrag");
 
       const containerRect = this.$refs.container.getBoundingClientRect();
       const rel = {
@@ -255,7 +240,6 @@ export default {
         }
       }
 
-      // find parent
       let dom = el;
       dom = this.getAncestorDom(
         dom,
@@ -306,7 +290,6 @@ export default {
       if (this.drag.over == null) {
         this.drag = null;
         this.root = this.deserializeTree(this.stringify);
-        console.log("onViewDrop rollback");
         return;
       }
       var { dom, attach, amount } = this.drag.over;
@@ -353,19 +336,15 @@ export default {
       this.onSetRect(ancestorContainer, false);
 
       this.drag = null;
-      console.log("onTabDrop");
 
       this.save();
     },
     onTabClose(e) {
       if (e.button !== 0) return;
-      console.log("layout onTabClose");
 
       const node = this.getNode(this.root, e);
-      if (node === undefined) {
-        console.log(" node is undefined");
-        return;
-      }
+      if (node === undefined) return;
+
       //const parent = this.getParentNode(this.root, node);
       const ancestorContainer = this.getAncestorNode(
         this.root,
@@ -380,7 +359,6 @@ export default {
       this.removeNode(this.root, node);
       this.setTabActive(this.root, nextActive);
 
-      console.log("onTabClose", ancestorContainer);
       this.onSetRect(ancestorContainer, false);
 
       this.save();
@@ -414,7 +392,6 @@ export default {
           const srcView = this.$refs.pages.querySelector(
             `.split-layout-page__page[node-id="${"_" + x.id}"] `
           );
-          console.log(node, e, srcView);
 
           e.appendChild(srcView);
         });
@@ -483,11 +460,6 @@ export default {
       const partitionTargetPrevIndex = targetIndex;
       const partitionTargetNextIndex = targetIndex + 1;
 
-      // const openPercent = parent.minimizes[siblingIndex].percent;
-      // const openPercentSub =
-      //   openPercent -
-      //   (partitions[partitionNextIndex] - partitions[partitionPrevIndex]);
-
       let tolerance = 0.00002;
 
       if (parent.minimizes[siblingIndex].type === "next") {
@@ -509,10 +481,6 @@ export default {
             partitions[i] += sumOpenPercent;
           }
         }
-
-        // for (let i = partitionNextIndex; i <= partitionTargetPrevIndex; i++) {
-        //   partitions[i] += sumOpenPercent;
-        // }
       } else if (parent.minimizes[siblingIndex].type === "prev") {
         let lowerOffset = 0;
         if (partitionTargetPrevIndex === 0) {
@@ -532,12 +500,7 @@ export default {
           } else {
             partitions[i] -= sumOpenPercent;
           }
-          console.log("after", lowerLimit, partitions[i]);
         }
-
-        // for (let i = partitionPrevIndex; i >= partitionTargetNextIndex; i--) {
-        //   partitions[i] -= sumOpenPercent;
-        // }
       }
 
       parent.minimizes[siblingIndex].percent = 0;
@@ -568,11 +531,7 @@ export default {
       if (type === "none") {
         parent.minimizes[siblingIndex].percent = 0;
       } else {
-        //const partitionPrevIndex = siblingIndex;
-        //const partitionNextIndex = siblingIndex + 1;
-
         parent.minimizes[siblingIndex].percent = percent;
-        //partitions[partitionNextIndex] - partitions[partitionPrevIndex];
       }
       parent.minimizes[siblingIndex].type = type;
 
@@ -583,7 +542,6 @@ export default {
       }
     },
     onSetPercents(nodeId, percents) {
-      //console.log("setPercents", nodeId, percents);
       const node = this.findIdNode(this.root, nodeId);
       node.percents = [...percents];
     },
@@ -664,7 +622,6 @@ export default {
             return { type, id: idCounter++, children, active: node.active };
           }
           case "page": {
-            // Complete tab omissions
             if (parentType == "tabs" || node.tabs) {
               return {
                 type,
@@ -706,7 +663,7 @@ export default {
         children,
       };
       const count = this.countNode(root, (x) => x.type === "tabs" && x.active);
-      console.log("count", count);
+
       if (count > 1) {
         const activeNode = this.findNode(
           root,
@@ -717,13 +674,11 @@ export default {
             x.active = false;
           }
         });
-        console.log("activeNode", activeNode);
       } else if (count === 0) {
         const activeNode = this.findNode(root, (x) => x.type === "tabs");
         if (activeNode != null) {
           activeNode.active = true;
         }
-        console.log("activeNode", activeNode);
       }
 
       return root;
@@ -744,33 +699,35 @@ export default {
       return;
     }
 
-    var targetEl = this.$refs.pages.querySelector(
+    var parentElement = this.$refs.pages.querySelector(
       ".split-layout-pages__contener"
     );
-    var els = this.$refs.layout.querySelectorAll(".split-layout-page__page");
+    var childElements = this.$refs.layout.querySelectorAll(
+      ".split-layout-page__page"
+    );
 
-    console.log("beforeUpdate", els.length);
-    Array.from(els).forEach((e, i) => {
-      targetEl.appendChild(e);
+    Array.from(childElements).forEach((e) => {
+      parentElement.appendChild(e);
     });
   },
   render(h) {
     this.$nextTick(() => {
-      //this.$emit("layout:begin");
+      var parentElements = this.$refs.layout.querySelectorAll(
+        ".split-layout__page"
+      );
 
-      var tarEls = this.$refs.layout.querySelectorAll(".split-layout__page");
-
-      console.log("nextTick", tarEls.length);
-      Array.from(tarEls).forEach((e, i) => {
-        const srcView = this.$refs.pages.querySelector(
-          ".split-layout-page__page[page=" + e.getAttribute("page") + "]"
+      Array.from(parentElements).forEach((e) => {
+        const childElement = this.$refs.pages.querySelector(
+          `.split-layout-page__page[page=${e.getAttribute("page")}]`
         );
-        if (!srcView) {
-          console.log("nextTick", tarEls);
-
+        if (childElement == null) {
+          console.error(
+            "split-layout__page has no corresponding element." +
+              `.split-layout-page__page[page=${e.getAttribute("page")}]`
+          );
           return;
         }
-        e.appendChild(srcView);
+        e.appendChild(childElement);
       });
 
       var el = this.$refs.container.querySelector(".split-layout__drag");
@@ -784,7 +741,6 @@ export default {
           }
         }
       }
-      //this.$emit("layout:complete");
     });
 
     let renderPages = {};
@@ -798,7 +754,6 @@ export default {
           return node.children.map((child) => walkRender(child));
         case "container":
           var children = node.children.map((child) => walkRender(child));
-          console.log("container", children);
           return (
             <SplitLayoutContainer
               key={node.id}
@@ -818,7 +773,6 @@ export default {
 
         case "tabs":
           var children = node.children.map((child) => walkRender(child));
-          console.log("tabs", children);
           return (
             <SplitLayoutTabs
               key={node.id}
@@ -845,9 +799,7 @@ export default {
           );
       }
     };
-    console.log("walkRender this.root", this.root);
     const layoutRender = walkRender(this.root);
-    console.log("walkRender layoutRender", layoutRender);
 
     return (
       <div class="split-layout__container" ref="container">

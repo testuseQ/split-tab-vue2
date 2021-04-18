@@ -202,7 +202,6 @@ export default {
             if (siblings.length == 1) {
                 // last page remove
                 console.warn("removeNodeTabs", parent.children.length)
-                console.log("removeNodeTabs", siblings.length, parent.type)
                 //parent.children.splice(0)
                 parent.children.splice(0)
                 console.warn("removeNodeTabs", parent.children.length)
@@ -221,8 +220,6 @@ export default {
 
                 if (parentParent.type === "container" && sibling.type === "container" && parentParent.dir === sibling.dir) {
                     // Merge containers of the same dir
-                    console.log("removeNodeTabs marge")
-
                     const parentParsent = parentParent.percents[parentIndex]
 
                     parentParent.percents = [
@@ -727,7 +724,7 @@ export default {
 
                 //targetParent.children.splice(siblingIndex, 1, tmp)
                 this.$set(targetParent.children, siblingIndex, JSON.parse(JSON.stringify(container)))
-                console.log("attachChild", targetParent.children)
+
 
             }
             return child

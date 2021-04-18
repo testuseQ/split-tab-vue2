@@ -20,13 +20,11 @@ export default {
   // },
   beforeDestroy() {
     if (this.$eventHub) {
-      console.log("rthis.$eventHub.$off");
       this.$eventHub.$off("set-rect-" + this.nodeId, this.setRect);
     }
   },
   mounted() {
     if (this.$eventHub) {
-      console.log("this.$eventHub.$on");
       this.$eventHub.$on("set-rect-" + this.nodeId, this.setRect);
     }
     this.$nextTick(() => {
@@ -36,18 +34,8 @@ export default {
 
   methods: {
     setRect(nextTick) {
-      // console.log(
-      //   "pre setRect-" + this.nodeId,
-      //   this.$el.clientWidth,
-      //   this.$el.clientHeight
-      // );
       if (nextTick) {
         this.$nextTick(() => {
-          // console.log(
-          //   "nextTick setRect-" + this.nodeId,
-          //   this.$el.clientWidth,
-          //   this.$el.clientHeight
-          // );
           const width = this.$el.clientWidth;
           const height = this.$el.clientHeight;
           if (width !== this.width || height !== this.rect.height) {
@@ -58,14 +46,8 @@ export default {
           }
         });
       } else {
-        // next nextTick
         this.$nextTick(() => {
           this.$nextTick(() => {
-            // console.log(
-            //   "next nextTick setRect-" + this.nodeId,
-            //   this.$el.clientWidth,
-            //   this.$el.clientHeight
-            // );
             const width = this.$el.clientWidth;
             const height = this.$el.clientHeight;
             if (width !== this.width || height !== this.rect.height) {

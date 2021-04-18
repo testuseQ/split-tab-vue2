@@ -16,7 +16,6 @@ export default {
   },
   methods: {
     canEdit(e) {
-      //console.log("canEdit");
       if (e.button !== 0 && e.touches == null) return;
 
       const h = this.node.dir === "horizontal";
@@ -28,7 +27,6 @@ export default {
         this.minimizeSize * minimizeCount + this.spliterSize * spliterCount;
 
       if (clientSize <= fixSize) {
-        console.log("stopPropagation");
         e.stopPropagation();
       }
     },
@@ -50,7 +48,6 @@ export default {
     },
     startResize(index, e) {
       if (e.button !== 0 && e.touches == null) return;
-      console.log("startResize" + index);
 
       if (!this.resizeable) return;
       this.resizing = true;
@@ -73,7 +70,6 @@ export default {
       );
 
       const drag = (event) => {
-        //console.log("drag");
         const mousePos = h ? event.clientX : event.clientY;
         const percentRect = this.$el.getBoundingClientRect();
         const percentRectPos = h ? percentRect.left : percentRect.top;
@@ -127,17 +123,9 @@ export default {
           partition = partitionUpperLimit;
         }
 
-        // const partitions = this.node.percents
-        //   .reduce((acc, x) => acc.concat([x + acc.slice(-1)[0]]), [0])
-        //   .slice(0, -1)
-        //   .concat(1);
-
         partitions[partitionIndex] =
           partition + overLowerLimitTolerance - overUpperLimitTolerance;
 
-        //console.log(this.node.percents, partitions, startPartitions);
-
-        // if (partition > startPartitions[index]) {
         for (let i = partitionIndex + 1; i < startPartitions.length; i++) {
           let j = i - 1;
           upperOffset += upperAdder;
@@ -181,7 +169,6 @@ export default {
             }
           }
         }
-        // } else if (partition < startPartitions[index]) {
         for (let i = partitionIndex - 1; i >= 0; i--) {
           let j = i;
           lowerOffset += lowerAdder;
@@ -226,7 +213,6 @@ export default {
             }
           }
         }
-        //}
         if (partitions[partitionIndex] > startPartitions[partitionIndex]) {
           let j = partitionIndex - 1;
           if (
@@ -239,7 +225,6 @@ export default {
                   : spliterPercent) +
                 tolerance
           ) {
-            //console.log("##b");
             this.$emit("setMinimize", this.node.children[j].id, "none", 0);
           }
         } else if (
@@ -256,16 +241,9 @@ export default {
                   : spliterPercent) +
                 tolerance
           ) {
-            //console.log("##a");
             this.$emit("setMinimize", this.node.children[j].id, "none", 0);
           }
         }
-        // const percents = partitions
-        //   .slice(1)
-        //   .reduce(
-        //     (acc, x) => acc.concat(x - acc.reduce((sum, y) => sum + y, 0)),
-        //     []
-        //   );
 
         const percents = this.toPercents(
           partitions,
@@ -273,9 +251,7 @@ export default {
           minimizePercent,
           spliterPercent
         );
-        //console.log(partitions, percents);
         this.$emit("setPercents", this.node.id, percents);
-
         this.$emit("setRect", this.node, true);
       };
 
@@ -295,13 +271,6 @@ export default {
     },
   },
   render(h) {
-    //console.log(this.$slots.default.length, this.node.children.length);
-    // console.log(
-    //   "render",
-    //   this.node.percents,
-    //   this.node.percents.reduce((acc, x) => acc + x, 0)
-    // );
-    // minimize count
     const minimizeCount = this.node.minimizes.reduce(
       (acc, x) => (x.type === "none" ? acc : acc + 1),
       0
@@ -396,7 +365,6 @@ export default {
         );
       }
     }
-    //console.log("split-layout-container__container", this.node);
     return (
       <div
         class={"split-layout-container__container-" + this.node.dir}
