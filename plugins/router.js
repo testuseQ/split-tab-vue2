@@ -16,7 +16,7 @@ export default (context, inject) => {
             console.log("demoLayout")
             context.$eventHub.$emit('open-page', {
                 page: to.path.replace("/", ""),
-                key: to.name || to.path.replace("/", ""),
+                unique: to.name || to.path.replace("/", ""),
                 title: to.name || to.path.replace("/", "")
             })
             return;

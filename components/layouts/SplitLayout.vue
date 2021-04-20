@@ -10,10 +10,12 @@ export default {
     closeable: { type: Boolean, default: true },
     openable: { type: Boolean, default: true },
     editable: { type: Boolean, default: true },
+    groupDragable: { type: Boolean, default: true },
+
     resizeable: { type: Boolean, default: true },
     volatile: { type: Boolean, default: true },
 
-    layouts: { type: Object, default: () => ({}) },
+    layout: { type: Object, default: () => ({}) },
 
     insertAmount: { type: [String, Number], default: 33 },
     insertPreview: { type: [String, Number], default: 33 },
@@ -30,7 +32,7 @@ export default {
   mixins: [SplitLayoutTree],
   data() {
     return {
-      root: this.initLayouts(),
+      root: this.initLayout(),
       drag: {
         on: false,
         node: undefined,
@@ -43,8 +45,8 @@ export default {
   },
 
   watch: {
-    layouts() {
-      this.root = this.calcLayouts();
+    layout() {
+      this.root = this.calcLayout(this.layout);
       this.onSetRect(this.root);
       this.save();
     },
@@ -80,21 +82,21 @@ export default {
     },
     save() {
       if (this.volatile) return;
-      localStorage.layouts = this.serializeTree(this.root);
+      localStorage.layout = this.serializeTree(this.root);
     },
     load() {
       if (this.volatile) return;
-      return this.deserializeTree(localStorage.layouts);
+      return this.deserializeTree(localStorage.layout);
     },
     openPage(args) {
-      let { page, key, title, tabs, scroll, scrollX, scrollY } = args;
-      key = key ?? page;
+      let { page, unique, title, tabs, scroll, scrollX, scrollY } = args;
+      unique = unique ?? page;
       title = title ?? page;
       tabs = tabs ?? true;
       scrollX = scroll ?? scrollX ?? true;
       scrollY = scroll ?? scrollY ?? true;
 
-      const target = this.findNode(this.root, (x) => x.key === key);
+      const target = this.findNode(this.root, (x) => x.unique === unique);
 
       if (target != null) {
         if (this.tabDisabled) return;
@@ -105,7 +107,7 @@ export default {
           type: "page",
           id: this.getSequenceId(this.root),
           page,
-          key,
+          unique,
           title,
           active: false,
           tabs,
@@ -158,6 +160,7 @@ export default {
       }
 
       const nextActive = this.getNextActive(this.root, node);
+      console.log("nextActive@", nextActive, this.root, node);
       const containerRect = this.$refs.container.getBoundingClientRect();
       const trect = e.target.getBoundingClientRect(); // Target is draggable
 
@@ -193,8 +196,10 @@ export default {
           this.drag.node,
           (x) => x.type === "container"
         );
+        this.root.tempIds = this.flatNodes(this.drag.node).map((x) => x.id);
         this.removeNode(this.root, this.drag.node);
 
+        console.log("nextActive", this.drag.nextActive);
         if (this.drag.nextActive != null) {
           this.drag.nextActive.active = true;
         }
@@ -284,6 +289,7 @@ export default {
       this.$refs.drag.style.width = 0;
       this.$refs.drag.style.height = 0;
       if (!this.drag.on) {
+        this.drag = null;
         return;
       }
       this.previewPane(this.$refs.preview, "none");
@@ -336,6 +342,7 @@ export default {
       this.onSetRect(ancestorContainer, false);
 
       this.drag = null;
+      this.root.tempIds = [];
 
       this.save();
     },
@@ -356,6 +363,7 @@ export default {
       e.stopPropagation();
 
       let nextActive = this.getNextActive(this.root, node);
+      console.log("onTabClose", nextActive, node, e.target);
       this.removeNode(this.root, node);
       this.setTabActive(this.root, nextActive);
 
@@ -372,7 +380,8 @@ export default {
 
       const els = nodes.map((x) =>
         this.$refs.container.querySelector(
-          `.split-layout-page__page[node-id="${"_" + x.id}"]`
+          // `.split-layout-page__page[node-id="${"_" + x.id}"]`
+          `.split-layout-page__page[unique="${x.unique}"]`
         )
       );
 
@@ -386,11 +395,13 @@ export default {
 
         nodes.forEach((x) => {
           const e = this.$refs.container.querySelector(
-            `.split-layout__page[node-id="${"_" + x.id}"]`
+            //`.split-layout__page[node-id="${"_" + x.id}"]`
+            `.split-layout__page[unique="${x.unique}"]`
           );
           if (e == null) return;
           const srcView = this.$refs.pages.querySelector(
-            `.split-layout-page__page[node-id="${"_" + x.id}"] `
+            //`.split-layout-page__page[node-id="${"_" + x.id}"] `
+            `.split-layout-page__page[unique="${x.unique}"] `
           );
 
           e.appendChild(srcView);
@@ -548,13 +559,32 @@ export default {
     onEndResize() {
       this.save();
     },
-    calcLayouts() {
+    setLayout(layout) {
+      this.root = this.calcLayout(layout, this.root);
+    },
+    calcLayout(layout, slot) {
+      // let ids = [];
+      // if (slot) {
+      //   if (this.someNode(layout, (x) => x.type === "slot")) {
+      //     ids = this.flatNodes(this.root).map((x) => x.id);
+      //   }
+      // }
+      // const getSequenceId = () => {
+      //   for (let i = 0; ; i++) {
+      //     if (!ids.includes(i)) {
+      //       ids.push(i);
+      //       return i;
+      //     }
+      //   }
+      // };
+
       let idCounter = 1;
-      const walkLayouts = (node, { parentType, active }) => {
+      const walkLayout = (node, { parentType, active }) => {
         if (node == null || !node instanceof Object) return undefined;
 
         let type = "";
-        if (
+        if (node.type === "slot") {
+        } else if (
           (node.type === "container" || node.type == null) &&
           node.hasOwnProperty("children") &&
           !node.hasOwnProperty("page") &&
@@ -596,7 +626,7 @@ export default {
             }));
 
             const children = (node.children || []).map((child) =>
-              walkLayouts(child, { parentType: type })
+              walkLayout(child, { parentType: type })
             );
             return {
               type,
@@ -614,7 +644,7 @@ export default {
             );
 
             const children = (node.children ?? []).map((child, index) =>
-              walkLayouts(child, {
+              walkLayout(child, {
                 parentType: type,
                 active: (defaultActive && index === 0) || child.active,
               })
@@ -627,7 +657,7 @@ export default {
                 type,
                 id: idCounter++,
                 page: node.page,
-                key: node.key ?? node.page,
+                unique: node.unique ?? node.page,
                 title: node.title ?? node.page,
                 active,
                 tabs: node.tabs ?? true,
@@ -636,7 +666,7 @@ export default {
               };
             } else {
               const children = [
-                walkLayouts(node, { parentType: "tabs", active: true }),
+                walkLayout(node, { parentType: "tabs", active: true }),
               ];
               return { type: "tabs", id: idCounter++, children };
             }
@@ -651,7 +681,7 @@ export default {
         }
       };
 
-      const child = walkLayouts(this.layouts, {});
+      const child = walkLayout(layout, {});
       const children = [];
       if (child != null) {
         children.push(child);
@@ -660,6 +690,7 @@ export default {
         type: "root",
         id: 0,
         ids: [...Array(idCounter).keys()],
+        tempIds: [],
         children,
       };
       const count = this.countNode(root, (x) => x.type === "tabs" && x.active);
@@ -683,15 +714,15 @@ export default {
 
       return root;
     },
-    initLayouts() {
+    initLayout() {
       if (!this.volatile) {
-        let retLayouts = this.load();
-        if (retLayouts) {
-          return retLayouts;
+        let retLayout = this.load();
+        if (retLayout) {
+          return retLayout;
         }
       }
 
-      return this.calcLayouts();
+      return this.calcLayout(this.layout);
     },
   },
   beforeUpdate() {
@@ -718,12 +749,12 @@ export default {
 
       Array.from(parentElements).forEach((e) => {
         const childElement = this.$refs.pages.querySelector(
-          `.split-layout-page__page[page=${e.getAttribute("page")}]`
+          `.split-layout-page__page[unique=${e.getAttribute("unique")}]`
         );
         if (childElement == null) {
           console.error(
             "split-layout__page has no corresponding element." +
-              `.split-layout-page__page[page=${e.getAttribute("page")}]`
+              `.split-layout-page__page[unique=${e.getAttribute("unique")}]`
           );
           return;
         }
@@ -745,7 +776,10 @@ export default {
 
     let renderPages = {};
     if (this.drag && this.drag.on && this.drag.node) {
-      renderPages[this.drag.node.id] = this.drag.node.page;
+      renderPages[this.drag.node.id] = {
+        page: this.drag.node.page,
+        unique: this.drag.node.unique,
+      };
     }
     const walkRender = (node) => {
       if (node == null) return null;
@@ -787,13 +821,14 @@ export default {
           );
 
         case "page":
-          renderPages[node.id] = node.page;
+          renderPages[node.id] = { page: node.page, unique: node.unique };
           return (
             <div
               class={"split-layout__page"}
               active={node.active}
               node-id={"_" + node.id}
               page={node.page}
+              unique={node.unique}
               title={node.title}
             ></div>
           );
@@ -813,8 +848,8 @@ export default {
         <div class="split-layout__preview" ref="preview"></div>
         <div
           class={
-            "split-layout__drag " +
-            (this.drag ? "split-layout__drag--dragging" : "")
+            "split-layout__drag" +
+            (this.drag && this.drag.on ? " split-layout__drag--dragging" : "")
           }
           ref="drag"
           style={{

@@ -189,6 +189,7 @@ export default {
             const parent = this.getParentNode(root, node)
             const index = parent.children.findIndex(child => child.id === node.id)
             parent.children.splice(index, 1) // remove child
+            root.ids = root.ids.filter(x => x !== node.id)
             if (parent.children.length === 0) {
                 this.removeNodeTabs(root, parent);
             }
@@ -198,11 +199,14 @@ export default {
             const parent = this.getParentNode(root, node);
             const siblings = parent.children
 
+            console.log("ids", root.ids)
+
 
             if (siblings.length == 1) {
                 // last page remove
                 console.warn("removeNodeTabs", parent.children.length)
                 //parent.children.splice(0)
+                root.ids = root.ids.filter(x => x !== siblings[0].id)
                 parent.children.splice(0)
                 console.warn("removeNodeTabs", parent.children.length)
 
@@ -211,10 +215,14 @@ export default {
             } else if (siblings.length == 2) {
 
                 const siblingIndex = parent.children.findIndex(child => child.id === node.id)
+
+                root.ids = root.ids.filter(x => x !== node.id)
                 parent.children.splice(siblingIndex, 1) // remove child
                 const [sibling] = parent.children
                 const parentParent = this.getParentNode(root, parent);
                 const parentIndex = parentParent.children.findIndex(child => child.id === parent.id)
+
+                root.ids = root.ids.filter(x => x !== parent.id)
                 parentParent.children.splice(parentIndex, 1, sibling)
 
 
@@ -244,6 +252,7 @@ export default {
                         ...parentParent.minimizes.slice(parentIndex + 1)
 
                     ]
+                    root.ids = root.ids.filter(x => x !== sibling.id)
                     parentParent.children = [
                         ...parentParent.children.slice(0, parentIndex),
                         ...sibling.children,
@@ -294,6 +303,7 @@ export default {
                         }
                     }
 
+                    root.ids = root.ids.filter(x => x !== node.id)
                     parent.children.splice(siblingIndex, 1) // remove child
                     parent.minimizes.splice(siblingIndex, 1);
                     parent.percents.splice(siblingIndex, 1);
@@ -370,6 +380,8 @@ export default {
                             parent.children[siblingIndex - prevDepth].active = true;
                         }
                     }
+
+                    root.ids = root.ids.filter(x => x !== node.id)
                     parent.children.splice(siblingIndex, 1) // remove child
                     parent.minimizes.splice(siblingIndex, 1);
 
@@ -433,7 +445,14 @@ export default {
                 console.log(" node-id is undefined");
                 return undefined;
             }
+
+            console.log("getNode", nodeId, target, e.target);
             return this.findNode(root, (x) => x.id === nodeId);
+        },
+        flatNodes(node) {
+            const ret = []
+            this.walkNode(node, (x) => ret.push(x))
+            return ret
         },
 
         walkNode(node, action) {
@@ -583,6 +602,7 @@ export default {
         getNextActive(root, node) {
             let nextActive = undefined;
             let siblings = this.getSiblingNodes(root, node);
+            console.log("getNextActive", siblings, node.active)
             if (siblings.length > 1) {
                 if (!node.active) {
                     nextActive = siblings.find(sibling => sibling.active);
@@ -608,10 +628,74 @@ export default {
 
         getSequenceId(root) {
             for (let i = 0; ; i++) {
-                if (!root.ids.includes(i)) {
+                if (!root.ids.includes(i) && !root.tempIds.includes(i)) {
                     root.ids.push(i)
                     return i
                 }
+            }
+        },
+        setSlot(root, parent, child) {
+
+            this.findNodes(child, x => x.type === "page").forEach(x =>
+                this.findNodes(child, y => y.unique === x.unique).forEach(y => this.removeNode(root, y))
+            )
+
+
+
+
+
+            if (parent.type === "container") {
+                if (child.type === "container" && parent.dir === child.dir) {
+                    // Merge containers of the same dir
+                    const slotIndx = parent.children.findIndex(x => x.type === "slot")
+                    const slotParsent = parent.percents[slotIndx]
+
+                    parent.percents = [
+                        ...parent.percents.slice(0, slotIndx),
+                        ...child.percents.map(x => x * slotParsent),
+                        ...parent.percents.slice(slotIndx + 1)]
+
+                    parent.minimizes = [
+
+                        ...parent.minimizes.slice(0, slotIndx),
+                        ...child.minimizes.map(x => {
+                            if (x.type !== "none") {
+                                return {
+                                    type: x.type,
+                                    percent: x.percent * slotParsent
+                                }
+                            } else {
+                                return x
+                            }
+
+                        }),
+                        ...parent.minimizes.slice(slotIndx + 1)
+
+                    ]
+                    parent.children = [
+                        ...parent.children.slice(0, slotIndx),
+                        ...child.children,
+                        ...parent.children.slice(slotIndx + 1)
+                    ]
+
+                } else {
+
+                    const slotIndx = parent.children.findIndex(x => x.type === "slot")
+                    parent.children = [
+                        ...parent.children.slice(0, slotIndx),
+                        child,
+                        ...parent.children.slice(slotIndx + 1)
+                    ]
+
+                }
+            } else if (parent.type === "tabs") {
+
+                const slotIndx = parent.children.findIndex(x => x.type === "slot")
+                parent.children = [
+                    ...parent.children.slice(0, slotIndx),
+                    child,
+                    ...parent.children.slice(slotIndx + 1)
+                ]
             }
         },
         attachTabChild(root, target, child, attach, amount, insertIndex) {

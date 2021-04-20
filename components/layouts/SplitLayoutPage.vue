@@ -1,5 +1,10 @@
 <template>
-  <div class="split-layout-page__page" :page="page" :node-id="'_' + nodeId">
+  <div
+    class="split-layout-page__page"
+    :page="page"
+    :node-id="'_' + nodeId"
+    :unique="unique"
+  >
     <keep-alive>
       <component :is="componentPage" :rect="rect"> </component>
     </keep-alive>
@@ -11,6 +16,7 @@ export default {
   props: {
     nodeId: String,
     page: String,
+    unique: String,
   },
   // computed:{
   //   _nodeId(){

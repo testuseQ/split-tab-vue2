@@ -4,6 +4,12 @@
       <button :class="{ active: state.editable }" @click="toggleEditable">
         editable
       </button>
+      <button
+        :class="{ active: state.groupDragable }"
+        @click="toggleGroupDragable"
+      >
+        group dragable
+      </button>
       <button :class="{ active: state.openable }" @click="toggleOpenable">
         openable
       </button>
@@ -69,9 +75,10 @@
         :openable="state.openable"
         :closeable="state.closeable"
         :editable="state.editable"
+        :group-dragable="state.groupDragable"
         :resizeable="state.resizeable"
         :volatile="state.volatile"
-        :layouts="state.layouts"
+        :layout="state.layout"
         :insert-amount="Number(state.insertAmount)"
         :insert-preview="Number(state.insertPreview)"
         :outer-insertable="state.outerInsertable"
@@ -192,10 +199,11 @@ export default {
         closeable: true,
 
         editable: true,
+        groupDragable: true,
         resizeable: true,
         volatile: (localStorage.volatile ?? "true") === "true",
 
-        layouts: layouts[0],
+        layout: layouts[0],
         layoutN: 0,
 
         insertAmount: 50,
@@ -213,10 +221,13 @@ export default {
   methods: {
     changeLayout() {
       this.state.layoutN = (this.state.layoutN + 1) % layouts.length;
-      this.state.layouts = layouts[this.state.layoutN];
+      this.state.layout = layouts[this.state.layoutN];
     },
     toggleEditable() {
       this.state.editable = !this.state.editable;
+    },
+    toggleGroupDragable() {
+      this.state.groupDragable = !this.state.groupDragable;
     },
     toggleOpenable() {
       this.state.openable = !this.state.openable;
