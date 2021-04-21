@@ -183,12 +183,20 @@ export default {
                     this.removeNodePage(root, node);
                     break;
                 }
+                case "slot": {
+                    this.removeNodeTabs(root, node)
+                    break;
+                }
             }
         },
         removeNodePage(root, node) {
             const parent = this.getParentNode(root, node)
             const index = parent.children.findIndex(child => child.id === node.id)
+
+            const nextActive = this.getNextActive(root, node);
             parent.children.splice(index, 1) // remove child
+            this.setTabActive(root, nextActive);
+
             root.ids = root.ids.filter(x => x !== node.id)
             if (parent.children.length === 0) {
                 this.removeNodeTabs(root, parent);
@@ -327,7 +335,7 @@ export default {
 
                     const parentDom = this.getNodeDom(parent, this.$el);
                     const h = parent.dir === "horizontal";
-                    const clientSize = h ? parentDom.clientWidth : parentDom.clientHeight;
+                    const clientSize = parentDom == null ? 10000 : (h ? parentDom.clientWidth : parentDom.clientHeight);
                     const minimizePercent = this.minimizeSize / clientSize;
                     const spliterPercent = this.spliterSize / clientSize;
                     const partitions = this.toPartitions(
@@ -634,20 +642,22 @@ export default {
                 }
             }
         },
-        setSlot(root, parent, child) {
+        setSlotNode(root, slot) {
+            const slotNode = this.findNode(root, (x) => x.type === "slot");
+            if (slotNode == null) return;
+            if (slot.children.length !== 1) {
+                this.removeNode(root, slotNode)
+                console.log("setSlotNode", root, slotNode, slot)
+                return
+            }
+            const [child] = slot.children
 
-            this.findNodes(child, x => x.type === "page").forEach(x =>
-                this.findNodes(child, y => y.unique === x.unique).forEach(y => this.removeNode(root, y))
-            )
-
-
-
-
+            const parent = this.getParentNode(root, slotNode)
 
             if (parent.type === "container") {
                 if (child.type === "container" && parent.dir === child.dir) {
                     // Merge containers of the same dir
-                    const slotIndx = parent.children.findIndex(x => x.type === "slot")
+                    const slotIndx = parent.children.findIndex(x => x.id === slotNode.id)
                     const slotParsent = parent.percents[slotIndx]
 
                     parent.percents = [

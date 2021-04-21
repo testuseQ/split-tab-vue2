@@ -33,6 +33,7 @@
       </button>
 
       <button @click="changeLayout">Change layout</button>
+      <button @click="setSlot">set slot</button>
       <div class="controls-nest">
         <span>insertAmount {{ this.state.insertAmount }}%</span>
         <input v-model="state.insertAmount" type="range" min="10" max="50" />
@@ -92,6 +93,37 @@
 </template>
 
 <script>
+const slot = {
+  type: "container",
+  dir: "vertical",
+  children: [
+    {
+      type: "tabs",
+      weight: 1,
+      children: [
+        {
+          weight: 1,
+          type: "page",
+          page: "testPageA",
+        },
+      ],
+    },
+    {
+      type: "slot",
+      active: true,
+    },
+    {
+      type: "tabs",
+      weight: 1,
+      children: [
+        {
+          page: "testPageF",
+          scroll: false,
+        },
+      ],
+    },
+  ],
+};
 const layouts = [
   // layout 0
   {},
@@ -219,6 +251,9 @@ export default {
     };
   },
   methods: {
+    setSlot() {
+      this.$eventHub.$emit("set-layout", slot);
+    },
     changeLayout() {
       this.state.layoutN = (this.state.layoutN + 1) % layouts.length;
       this.state.layout = layouts[this.state.layoutN];

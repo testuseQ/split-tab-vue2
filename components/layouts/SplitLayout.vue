@@ -61,6 +61,7 @@ export default {
   mounted() {
     if (this.$eventHub) {
       this.$eventHub.$on("open-page", this.openPage);
+      this.$eventHub.$on("set-layout", this.setLayout);
     }
     window.addEventListener("resize", this.handleResize);
   },
@@ -68,6 +69,7 @@ export default {
   beforeDestroy() {
     if (this.$eventHub) {
       this.$eventHub.$off("open-page", this.openPage);
+      this.$eventHub.$off("set-layout", this.setLayout);
     }
     window.removeEventListener("resize", this.handleResize);
   },
@@ -159,8 +161,8 @@ export default {
         return;
       }
 
-      const nextActive = this.getNextActive(this.root, node);
-      console.log("nextActive@", nextActive, this.root, node);
+      //const nextActive = this.getNextActive(this.root, node);
+      //console.log("nextActive@", nextActive, this.root, node);
       const containerRect = this.$refs.container.getBoundingClientRect();
       const trect = e.target.getBoundingClientRect(); // Target is draggable
 
@@ -171,7 +173,7 @@ export default {
         node,
         offset: { x: e.clientX - trect.left, y: e.clientY - trect.top },
         on: false,
-        nextActive,
+        // nextActive,
         dom,
       };
 
@@ -199,10 +201,10 @@ export default {
         this.root.tempIds = this.flatNodes(this.drag.node).map((x) => x.id);
         this.removeNode(this.root, this.drag.node);
 
-        console.log("nextActive", this.drag.nextActive);
-        if (this.drag.nextActive != null) {
-          this.drag.nextActive.active = true;
-        }
+        //console.log("nextActive", this.drag.nextActive);
+        // if (this.drag.nextActive != null) {
+        //   this.drag.nextActive.active = true;
+        // }
 
         this.onSetRect(ancestorContainer, false);
       }
@@ -362,10 +364,10 @@ export default {
       e.preventDefault();
       e.stopPropagation();
 
-      let nextActive = this.getNextActive(this.root, node);
-      console.log("onTabClose", nextActive, node, e.target);
+      //let nextActive = this.getNextActive(this.root, node);
+      //console.log("onTabClose", nextActive, node, e.target);
       this.removeNode(this.root, node);
-      this.setTabActive(this.root, nextActive);
+      //this.setTabActive(this.root, nextActive);
 
       this.onSetRect(ancestorContainer, false);
 
@@ -561,14 +563,11 @@ export default {
     },
     setLayout(layout) {
       this.root = this.calcLayout(layout, this.root);
+
+      this.onSetRect(this.root, false);
+      this.save();
     },
     calcLayout(layout, slot) {
-      // let ids = [];
-      // if (slot) {
-      //   if (this.someNode(layout, (x) => x.type === "slot")) {
-      //     ids = this.flatNodes(this.root).map((x) => x.id);
-      //   }
-      // }
       // const getSequenceId = () => {
       //   for (let i = 0; ; i++) {
       //     if (!ids.includes(i)) {
@@ -578,12 +577,35 @@ export default {
       //   }
       // };
 
-      let idCounter = 1;
+      const root = {
+        type: "root",
+        id: 0,
+        ids: [0],
+        tempIds: [],
+        children: [],
+      };
+      console.log("calcLayout 1 ", root.ids, slot);
+      if (slot && this.someNode(layout, (x) => x.type === "slot")) {
+        this.findNodes(layout, (x) => x.hasOwnProperty("page")).forEach((x) =>
+          this.findNodes(
+            slot,
+            (y) =>
+              y.type === "page" && (y.unique ?? y.page) === (x.unique ?? x.page)
+          ).forEach((y) => this.removeNode(slot, y))
+        );
+        if (slot.children.length === 1) {
+          root.ids.push(...this.flatNodes(slot.children[0]).map((x) => x.id));
+        }
+      }
+
+      console.log("calcLayout 2 ", root.ids, slot);
+
       const walkLayout = (node, { parentType, active }) => {
         if (node == null || !node instanceof Object) return undefined;
 
         let type = "";
         if (node.type === "slot") {
+          type = "slot";
         } else if (
           (node.type === "container" || node.type == null) &&
           node.hasOwnProperty("children") &&
@@ -612,6 +634,12 @@ export default {
         }
 
         switch (type) {
+          case "slot": {
+            return {
+              type,
+              id: -1,
+            };
+          }
           case "container": {
             // Determine the percentage of the page width from the weights.
             const weights = node.children.map((child) => {
@@ -630,7 +658,7 @@ export default {
             );
             return {
               type,
-              id: idCounter++,
+              id: this.getSequenceId(root),
               dir: node.dir,
               percents,
               minimizes,
@@ -649,13 +677,18 @@ export default {
                 active: (defaultActive && index === 0) || child.active,
               })
             );
-            return { type, id: idCounter++, children, active: node.active };
+            return {
+              type,
+              id: this.getSequenceId(root),
+              children,
+              active: node.active,
+            };
           }
           case "page": {
             if (parentType == "tabs" || node.tabs) {
               return {
                 type,
-                id: idCounter++,
+                id: this.getSequenceId(root),
                 page: node.page,
                 unique: node.unique ?? node.page,
                 title: node.title ?? node.page,
@@ -668,7 +701,7 @@ export default {
               const children = [
                 walkLayout(node, { parentType: "tabs", active: true }),
               ];
-              return { type: "tabs", id: idCounter++, children };
+              return { type: "tabs", id: this.getSequenceId(root), children };
             }
           }
           case "empty": {
@@ -686,13 +719,11 @@ export default {
       if (child != null) {
         children.push(child);
       }
-      const root = {
-        type: "root",
-        id: 0,
-        ids: [...Array(idCounter).keys()],
-        tempIds: [],
-        children,
-      };
+      root.children = children;
+      //if (slot != null) {
+      this.setSlotNode(root, slot);
+      //}
+
       const count = this.countNode(root, (x) => x.type === "tabs" && x.active);
 
       if (count > 1) {
