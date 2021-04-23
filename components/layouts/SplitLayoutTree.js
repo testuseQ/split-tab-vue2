@@ -609,8 +609,11 @@ export default {
         },
         getNextActive(root, node) {
             let nextActive = undefined;
+            if (node.active == null || node.active === false) return nextActive
+
+
             let siblings = this.getSiblingNodes(root, node);
-            console.log("getNextActive", siblings, node.active)
+            console.log("getNextActive before", root, node, siblings, node.active)
             if (siblings.length > 1) {
                 if (!node.active) {
                     nextActive = siblings.find(sibling => sibling.active);
@@ -631,6 +634,7 @@ export default {
                     }
                 }
             }
+            console.log("getNextActive after", nextActive)
             return nextActive;
         },
 

@@ -81,6 +81,9 @@ export default {
       </div>
     );
 
+    if (activeIndex === -1) {
+      console.log("error on tabs", activeIndex, this.node);
+    }
     if (
       this.node.children[activeIndex].scrollX === true ||
       this.node.children[activeIndex].scrollY === true

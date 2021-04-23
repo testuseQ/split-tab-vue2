@@ -83,6 +83,7 @@ export default {
       nodes.forEach((x) => this.$eventHub.$emit("set-rect-" + x.id, nextTick));
     },
     save() {
+      console.log("save", JSON.stringify(this.root, null, "\t"));
       if (this.volatile) return;
       localStorage.layout = this.serializeTree(this.root);
     },
@@ -138,6 +139,11 @@ export default {
       }
 
       this.save();
+    },
+
+    onCapturePage(nodeId) {
+      const node = this.findIdNode(this.root, nodeId);
+      this.setTabActive(this.root, node);
     },
     onTabDragStart(e) {
       if (e.button !== 0) return;
@@ -344,6 +350,7 @@ export default {
       this.onSetRect(ancestorContainer, false);
 
       this.drag = null;
+      this.root.ids.push(...this.root.tempIds);
       this.root.tempIds = [];
 
       this.save();
@@ -544,6 +551,14 @@ export default {
       if (type === "none") {
         parent.minimizes[siblingIndex].percent = 0;
       } else {
+        console.log(
+          "!!!!onSetMinimize debug!!!!!",
+          parent,
+          percent,
+          type,
+          siblingIndex,
+          node
+        );
         parent.minimizes[siblingIndex].percent = percent;
       }
       parent.minimizes[siblingIndex].type = type;
@@ -568,15 +583,6 @@ export default {
       this.save();
     },
     calcLayout(layout, slot) {
-      // const getSequenceId = () => {
-      //   for (let i = 0; ; i++) {
-      //     if (!ids.includes(i)) {
-      //       ids.push(i);
-      //       return i;
-      //     }
-      //   }
-      // };
-
       const root = {
         type: "root",
         id: 0,
@@ -894,6 +900,7 @@ export default {
           <SplitLayoutPages
             pages={renderPages}
             key={"pages"}
+            onCapturePage={this.onCapturePage}
           ></SplitLayoutPages>
         </div>
       </div>

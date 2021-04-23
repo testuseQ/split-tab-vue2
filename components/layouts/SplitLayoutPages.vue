@@ -8,13 +8,19 @@ export default {
   },
 
   components: { SplitLayoutPage },
+  methods: {
+    onCapturePage(nodeId) {
+      this.$emit("capturePage", nodeId);
+    },
+  },
   render(h) {
     const children = Object.entries(this.pages).map(([id, value]) => (
       <SplitLayoutPage
         page={value.page}
-        node-id={id}
+        node-id={Number(id)}
         key={id}
         unique={value.unique}
+        onCapturePage={this.onCapturePage}
       />
     ));
     return <div class="split-layout-pages__contener">{children}</div>;

@@ -4,6 +4,7 @@
     :page="page"
     :node-id="'_' + nodeId"
     :unique="unique"
+    @mousedown.capture="onCapturePage"
   >
     <keep-alive>
       <component :is="componentPage" :rect="rect"> </component>
@@ -14,7 +15,7 @@
 <script>
 export default {
   props: {
-    nodeId: String,
+    nodeId: Number,
     page: String,
     unique: String,
   },
@@ -39,6 +40,9 @@ export default {
   },
 
   methods: {
+    onCapturePage() {
+      this.$emit("capturePage", this.nodeId);
+    },
     setRect(nextTick) {
       if (nextTick) {
         this.$nextTick(() => {

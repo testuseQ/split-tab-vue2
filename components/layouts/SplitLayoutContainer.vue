@@ -284,6 +284,10 @@ export default {
     for (let i = 0; i < this.$slots.default.length; i++) {
       let last = i === this.$slots.default.length - 1;
 
+      if (this.node.minimizes[i] == null) {
+        console.log("!!error!!", this.node, i);
+      }
+
       if (this.node.minimizes[i].type === "none") {
         if (last) {
           items.push(
