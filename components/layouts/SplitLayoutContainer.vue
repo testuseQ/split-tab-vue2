@@ -151,6 +151,7 @@ export default {
               );
             }
           } else {
+            partitions[i] = startPartitions[i];
             if (
               this.node.minimizes[j].type !== "none" &&
               startMinimizes[j].type === "none"
@@ -195,6 +196,7 @@ export default {
               );
             }
           } else {
+            partitions[i] = startPartitions[i];
             if (
               this.node.minimizes[j].type !== "none" &&
               startMinimizes[j].type === "none"

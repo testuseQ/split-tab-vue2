@@ -4,6 +4,9 @@ import SplitLayoutPages from "./SplitLayoutPages";
 import SplitLayoutTabs from "./SplitLayoutTabs";
 import SplitLayoutContainer from "./SplitLayoutContainer";
 import SplitLayoutTree from "./SplitLayoutTree.js";
+
+import VueContext from "vue-context";
+import "vue-context/dist/css/vue-context.css";
 export default {
   props: {
     tabDisabled: { type: Boolean, default: false },
@@ -27,7 +30,12 @@ export default {
     minimizeSize: { type: Number, default: 16 },
     spliterSize: { type: Number, default: 8 },
   },
-  components: { SplitLayoutPages, SplitLayoutTabs, SplitLayoutContainer },
+  components: {
+    SplitLayoutPages,
+    SplitLayoutTabs,
+    SplitLayoutContainer,
+    VueContext,
+  },
 
   mixins: [SplitLayoutTree],
   data() {
@@ -39,6 +47,9 @@ export default {
         offset: undefined,
         nextActive: undefined,
         dom: undefined,
+      },
+      menu: {
+        nodeId: 0,
       },
       stringify: "",
     };
@@ -74,6 +85,75 @@ export default {
     window.removeEventListener("resize", this.handleResize);
   },
   methods: {
+    onContextMenuOpen(event, nodeId) {
+      console.log("contextMenu e", event);
+      this.$refs.menu.open(event);
+      this.menu.nodeId = nodeId;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    onContextMenuClose(event) {
+      this.$refs.menu.close(event);
+    },
+    contextOptionClose(event) {
+      console.log("option contextOptionClose", this.menu.nodeId);
+
+      const node = this.findIdNode(this.root, this.menu.nodeId);
+      if (node === undefined) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      const ancestorContainer = this.getAncestorNode(
+        this.root,
+        node,
+        (x) => x.type === "container"
+      );
+      this.removeNode(this.root, node);
+      this.onSetRect(ancestorContainer, false);
+    },
+
+    contextOptionCloseOther(event) {
+      console.log("option contextOptionCloseOther", this.menu.nodeId);
+      const nodeId = this.menu.nodeId;
+
+      const node = this.findIdNode(this.root, nodeId);
+      if (node === undefined) return;
+      const parent = this.getParentNode(this.root, node);
+      if (parent === undefined) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      const ancestorContainer = this.getAncestorNode(
+        this.root,
+        parent,
+        (x) => x.type === "container"
+      );
+      parent.children
+        .filter((x) => x.id != nodeId)
+        .forEach((x) => {
+          this.removeNode(this.root, x);
+        });
+
+      this.onSetRect(ancestorContainer, false);
+    },
+
+    contextOptionCloseAll(event) {
+      console.log("option contextOptionCloseAll", this.menu.nodeId);
+      const node = this.findIdNode(this.root, this.menu.nodeId);
+      if (node === undefined) return;
+      const parent = this.getParentNode(this.root, node);
+      if (parent === undefined) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      const ancestorContainer = this.getAncestorNode(
+        this.root,
+        parent,
+        (x) => x.type === "container"
+      );
+      this.removeNode(this.root, parent);
+      this.onSetRect(ancestorContainer, false);
+    },
     handleResize() {
       this.onSetRect(this.root);
     },
@@ -83,7 +163,7 @@ export default {
       nodes.forEach((x) => this.$eventHub.$emit("set-rect-" + x.id, nextTick));
     },
     save() {
-      console.log("save", JSON.stringify(this.root, null, "\t"));
+      //console.log("save", JSON.stringify(this.root, null, "\t"));
       if (this.volatile) return;
       localStorage.layout = this.serializeTree(this.root);
     },
@@ -92,10 +172,11 @@ export default {
       return this.deserializeTree(localStorage.layout);
     },
     openPage(args) {
-      let { page, unique, title, tabs, scroll, scrollX, scrollY } = args;
+      let { page, unique, title, icon, tabs, scroll, scrollX, scrollY } = args;
       unique = unique ?? page;
       title = title ?? page;
       tabs = tabs ?? true;
+      icon = icon ?? undefined;
       scrollX = scroll ?? scrollX ?? true;
       scrollY = scroll ?? scrollY ?? true;
 
@@ -150,18 +231,24 @@ export default {
 
       const node = this.getNode(this.root, e);
       if (node === undefined) return;
+      if (!this.groupDragable && node.type === "tabs") return;
 
       e.preventDefault();
       e.stopPropagation();
 
       if (this.tabDisabled) return;
 
-      const beforeActive = node.active;
-
-      this.setTabActive(this.root, node);
-      if (!beforeActive) {
-        this.onSetRect(node, false);
+      if (node.type === "page") {
+        const beforeActive = node.active;
+        this.setTabActive(this.root, node);
+        if (!beforeActive) {
+          this.onSetRect(node, false);
+        }
       }
+      if (node.type === "tabs") {
+        this.setTabsActive(this.root, node);
+      }
+
       this.save();
       if (!this.editable) {
         return;
@@ -170,10 +257,18 @@ export default {
       //const nextActive = this.getNextActive(this.root, node);
       //console.log("nextActive@", nextActive, this.root, node);
       const containerRect = this.$refs.container.getBoundingClientRect();
-      const trect = e.target.getBoundingClientRect(); // Target is draggable
 
       let dom = e.target;
-      dom = this.getAncestorDom(dom, ".split-layout-tabs__header");
+      console.log("this.groupDragable prev", this.groupDragable, e.target);
+      dom = this.getAncestorDom(
+        dom,
+        ".split-layout-tabs__header" +
+          (this.groupDragable ? ", .split-layout-tabs__headers" : "")
+      );
+
+      const trect = dom.getBoundingClientRect(); // Target is draggable
+
+      console.log("this.groupDragable", this.groupDragable, dom);
       dom = dom.cloneNode(true);
       this.drag = {
         node,
@@ -204,10 +299,14 @@ export default {
           this.drag.node,
           (x) => x.type === "container"
         );
-        this.root.tempIds = this.flatNodes(this.drag.node).map((x) => x.id);
+        const tempIds = this.flatNodes(this.drag.node).map((x) => x.id);
+        console.log("ids before", this.root.ids, tempIds);
         this.removeNode(this.root, this.drag.node);
+        console.log("ids after", this.root.ids, tempIds);
+        this.root.ids.push(...tempIds);
+        //this.root.tempIds = [];
 
-        //console.log("nextActive", this.drag.nextActive);
+        console.log("onTabDrag on");
         // if (this.drag.nextActive != null) {
         //   this.drag.nextActive.active = true;
         // }
@@ -266,6 +365,11 @@ export default {
       }
 
       let attach = undefined;
+      if (!dom.matches) {
+        //this.previewPane(this.$refs.preview, "none");
+        console.log("dom error", dom);
+        dom = this.$refs.layout;
+      }
 
       if (dom.matches(".split-layout-tabs__header-space")) {
         attach = "center";
@@ -296,6 +400,8 @@ export default {
       this.$refs.drag.style.left = 0;
       this.$refs.drag.style.width = 0;
       this.$refs.drag.style.height = 0;
+
+      console.log("onTabDrop", this.drag);
       if (!this.drag.on) {
         this.drag = null;
         return;
@@ -316,11 +422,24 @@ export default {
         const nodeId = Number(
           dom.getAttribute("node-id").replace(/[^0-9]/g, "")
         );
+        if (nodeId === this.drag.node.id) {
+          console.log("same id", nodeId, this.drag.node.id);
+          this.drag = null;
+          this.root = this.deserializeTree(this.stringify);
+          return;
+        }
         target = this.findIdNode(this.root, nodeId);
       } else if (dom.matches(".split-layout-tabs__header")) {
         const nodeId = Number(
           dom.getAttribute("node-id").replace(/[^0-9]/g, "")
         );
+        if (nodeId === this.drag.node.id) {
+          console.log("same id", nodeId, this.drag.node.id);
+          this.drag = null;
+          this.root = this.deserializeTree(this.stringify);
+          return;
+        }
+
         const node = this.findIdNode(this.root, nodeId);
         target = this.getParentNode(this.root, node);
         insertIndex = target.children.findIndex((x) => x.id === node.id);
@@ -333,25 +452,45 @@ export default {
       } else if (dom.matches(".split-layout__layout")) {
         target = this.root;
       }
-      this.attachTabChild(
-        this.root,
-        target,
-        this.drag.node,
-        attach,
-        amount,
-        insertIndex
-      );
 
+      if (this.drag.node.type === "page") {
+        this.attachTabChild(
+          this.root,
+          target,
+          this.drag.node,
+          attach,
+          amount,
+          insertIndex
+        );
+      }
+
+      if (this.drag.node.type === "tabs") {
+        this.attachGroupDrag(
+          this.root,
+          target,
+          this.drag.node,
+          attach,
+          amount,
+          insertIndex
+        );
+      }
       const ancestorContainer = this.getAncestorNode(
         this.root,
         this.drag.node,
         (x) => x.type === "container"
       );
-      this.onSetRect(ancestorContainer, false);
+      console.log(this.drag.node.type, attach);
+      if (attach === "center" && this.drag.node.type === "tabs") {
+        console.log("this.drag.node.type === tabs", ancestorContainer);
+
+        this.onSetRect(this.drag.node, false);
+      } else {
+        this.onSetRect(ancestorContainer, false);
+      }
 
       this.drag = null;
-      this.root.ids.push(...this.root.tempIds);
-      this.root.tempIds = [];
+      // this.root.ids.push(...this.root.tempIds);
+      // this.root.tempIds = [];
 
       this.save();
     },
@@ -360,22 +499,15 @@ export default {
 
       const node = this.getNode(this.root, e);
       if (node === undefined) return;
+      e.preventDefault();
+      e.stopPropagation();
 
-      //const parent = this.getParentNode(this.root, node);
       const ancestorContainer = this.getAncestorNode(
         this.root,
         node,
         (x) => x.type === "container"
       );
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      //let nextActive = this.getNextActive(this.root, node);
-      //console.log("onTabClose", nextActive, node, e.target);
       this.removeNode(this.root, node);
-      //this.setTabActive(this.root, nextActive);
-
       this.onSetRect(ancestorContainer, false);
 
       this.save();
@@ -587,7 +719,7 @@ export default {
         type: "root",
         id: 0,
         ids: [0],
-        tempIds: [],
+        //tempIds: [],
         children: [],
       };
       console.log("calcLayout 1 ", root.ids, slot);
@@ -698,6 +830,7 @@ export default {
                 page: node.page,
                 unique: node.unique ?? node.page,
                 title: node.title ?? node.page,
+                icon: node.icon ?? undefined,
                 active,
                 tabs: node.tabs ?? true,
                 scrollX: node.scroll ?? node.scrollX ?? true,
@@ -813,10 +946,19 @@ export default {
 
     let renderPages = {};
     if (this.drag && this.drag.on && this.drag.node) {
-      renderPages[this.drag.node.id] = {
-        page: this.drag.node.page,
-        unique: this.drag.node.unique,
-      };
+      this.flatNodes(this.drag.node)
+        .filter((x) => x.type === "page")
+        .forEach((x) => {
+          renderPages[x.id] = {
+            page: x.page,
+            unique: x.unique,
+          };
+        });
+
+      // renderPages[this.drag.node.id] = {
+      //   page: this.drag.node.page,
+      //   unique: this.drag.node.unique,
+      // };
     }
     const walkRender = (node) => {
       if (node == null) return null;
@@ -849,9 +991,11 @@ export default {
               key={node.id}
               node={node}
               closeable={this.closeable}
+              groupDragable={this.groupDragable}
               onTabDragStart={this.onTabDragStart}
               onTabClose={this.onTabClose}
               onSetRect={this.onSetRect}
+              onContextMenuOpen={this.onContextMenuOpen}
             >
               {children}
             </SplitLayoutTabs>
@@ -874,7 +1018,14 @@ export default {
     const layoutRender = walkRender(this.root);
 
     return (
-      <div class="split-layout__container" ref="container">
+      <div
+        class="split-layout__container"
+        ref="container"
+        on={{
+          "!mousedown": this.onContextMenuClose,
+          "!touchstart": this.onContextMenuClose,
+        }}
+      >
         <div
           class="split-layout__layout"
           ref="layout"
@@ -903,6 +1054,38 @@ export default {
             onCapturePage={this.onCapturePage}
           ></SplitLayoutPages>
         </div>
+        <vue-context ref="menu">
+          <li>
+            <a
+              on={{
+                mousedown: this.contextOptionClose,
+                touchstart: this.contextOptionClose,
+              }}
+            >
+              {"close"}
+            </a>
+          </li>
+          <li>
+            <a
+              on={{
+                mousedown: this.contextOptionCloseOther,
+                touchstart: this.contextOptionCloseOther,
+              }}
+            >
+              {"close other"}
+            </a>
+          </li>
+          <li>
+            <a
+              on={{
+                mousedown: this.contextOptionCloseAll,
+                touchstart: this.contextOptionCloseAll,
+              }}
+            >
+              {"close all"}
+            </a>
+          </li>
+        </vue-context>
       </div>
     );
   },
@@ -910,6 +1093,11 @@ export default {
 </script>
 
 <style>
+.v-context > li > a,
+.v-context ul > li > a {
+  font-size: 0.75em;
+  padding: 0.5rem 0.5rem;
+}
 .split-layout__container {
   display: flex;
   flex-direction: column;

@@ -44,6 +44,7 @@ export default {
       this.$emit("capturePage", this.nodeId);
     },
     setRect(nextTick) {
+      console.log("setRect nextTic prev", nextTick);
       if (nextTick) {
         this.$nextTick(() => {
           const width = this.$el.clientWidth;

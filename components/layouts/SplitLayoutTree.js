@@ -177,6 +177,7 @@ export default {
                     break;
                 }
                 case "tabs": {
+                    this.removeNodeTabs(root, node)
                     break;
                 }
                 case "page": {
@@ -197,12 +198,17 @@ export default {
             parent.children.splice(index, 1) // remove child
             this.setTabActive(root, nextActive);
 
-            root.ids = root.ids.filter(x => x !== node.id)
+            const removeIds = this.flatNodes(node).map((x) => x.id);
+            root.ids = root.ids.filter(x => !removeIds.includes(x))
             if (parent.children.length === 0) {
                 this.removeNodeTabs(root, parent);
             }
         },
         removeNodeTabs(root, node) {
+
+
+            const removeIds = this.flatNodes(node).map((x) => x.id);
+            root.ids = root.ids.filter(x => !removeIds.includes(x))
 
             const parent = this.getParentNode(root, node);
             const siblings = parent.children
@@ -214,7 +220,7 @@ export default {
                 // last page remove
                 console.warn("removeNodeTabs", parent.children.length)
                 //parent.children.splice(0)
-                root.ids = root.ids.filter(x => x !== siblings[0].id)
+                //root.ids = root.ids.filter(x => x !== siblings[0].id)
                 parent.children.splice(0)
                 console.warn("removeNodeTabs", parent.children.length)
 
@@ -224,7 +230,7 @@ export default {
 
                 const siblingIndex = parent.children.findIndex(child => child.id === node.id)
 
-                root.ids = root.ids.filter(x => x !== node.id)
+                //root.ids = root.ids.filter(x => x !== node.id)
                 parent.children.splice(siblingIndex, 1) // remove child
                 const [sibling] = parent.children
                 const parentParent = this.getParentNode(root, parent);
@@ -389,7 +395,7 @@ export default {
                         }
                     }
 
-                    root.ids = root.ids.filter(x => x !== node.id)
+                    //root.ids = root.ids.filter(x => x !== node.id)
                     parent.children.splice(siblingIndex, 1) // remove child
                     parent.minimizes.splice(siblingIndex, 1);
 
@@ -576,6 +582,23 @@ export default {
             walk(root);
             return ret;
         },
+
+        setTabsActive(root, node) {
+            if (node == null) return;
+            let tabNode = this.getAncestorNode(
+                root,
+                node,
+                (x) => x.type === "tabs"
+            );
+
+            this.$set(tabNode, "active", true)
+            this.walkNode(root, (x) => {
+                if (x.type === "tabs" && x.id !== tabNode.id && x.active) {
+                    //tabNode.active = false
+                    this.$set(x, "active", false)
+                }
+            });
+        },
         setTabActive(root, node) {
             if (node == null) return;
             let tabNode = this.getAncestorNode(
@@ -640,7 +663,8 @@ export default {
 
         getSequenceId(root) {
             for (let i = 0; ; i++) {
-                if (!root.ids.includes(i) && !root.tempIds.includes(i)) {
+                if (!root.ids.includes(i)) {
+                    //    if (!root.ids.includes(i) && !root.tempIds.includes(i)) {
                     root.ids.push(i)
                     return i
                 }
@@ -710,6 +734,33 @@ export default {
                     child,
                     ...parent.children.slice(slotIndx + 1)
                 ]
+            }
+        },
+        attachGroupDrag(root, target, child, attach, amount, insertIndex) {
+
+            if (attach == 'center' || target.type === 'root' && target.children.length === 0) {// into target tabs
+                console.log("to root")
+                insertIndex = insertIndex ?? target.children.length
+                if (target.type === 'root') {
+
+                    target.children.splice(insertIndex, 0, child)
+                    const [activeChild] = child.children.filter(x => x.active)
+                    this.setTabActive(root, activeChild)
+                } else {
+
+                    this.root.ids = this.root.ids.filter(x => x !== child.id)
+                    target.children.splice(insertIndex, 0, ...child.children)
+                    const [activeChild] = child.children.filter(x => x.active)
+                    this.setTabActive(root, activeChild)
+                }
+            } else {
+
+                if (target.type === 'root' && target.children.length !== 0) {
+                    [target] = target.children
+                }
+                this.attachChild(root, target, child, attach, amount)
+                const [activeChild] = child.children.filter(x => x.active)
+                this.setTabActive(root, activeChild)
             }
         },
         attachTabChild(root, target, child, attach, amount, insertIndex) {

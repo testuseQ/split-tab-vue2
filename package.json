@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "nuxt": "^2.14.6",
-    "simplebar-vue": "^1.6.0"
+    "simplebar-vue": "^1.6.0",
+    "vue-context": "^6.0.0"
   },
   "devDependencies": {
     "@nuxtjs/vuetify": "^1.11.2"

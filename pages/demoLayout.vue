@@ -56,7 +56,7 @@
         <input
           v-model="state.outerInsertPreview"
           type="range"
-          min="10"
+          min="0"
           max="50"
         />
       </div>
@@ -105,6 +105,7 @@ const slot = {
           weight: 1,
           type: "page",
           page: "testPageA",
+          icon: "account",
         },
       ],
     },
@@ -119,6 +120,7 @@ const slot = {
         {
           page: "testPageF",
           scroll: false,
+          icon: "account",
         },
       ],
     },
@@ -143,6 +145,7 @@ const layouts = [
             weight: 1,
             type: "page",
             page: "testPageA",
+            icon: "account",
           },
         ],
       },
@@ -152,6 +155,7 @@ const layouts = [
         children: [
           {
             page: "testPageB",
+            icon: "account",
           },
         ],
         active: true,
@@ -163,6 +167,7 @@ const layouts = [
           {
             page: "testPageC",
             scroll: false,
+            icon: "account",
           },
         ],
       },
@@ -173,6 +178,7 @@ const layouts = [
         children: [
           {
             page: "testPageD",
+            icon: "account",
           },
         ],
       },
@@ -245,8 +251,8 @@ export default {
         outerInsertAmount: 33,
         outerInsertPreview: 0,
 
-        minimizeSize: 80,
-        spliterSize: 48,
+        minimizeSize: 16,
+        spliterSize: 8,
       },
     };
   },

@@ -1,11 +1,12 @@
 <script>
 import simplebar from "simplebar-vue";
-
 import "simplebar/dist/simplebar.min.css";
+
 export default {
   props: {
     node: { type: [String, Number, Object], default: () => ({}) },
     closeable: { type: Boolean, default: true },
+    groupDragable: { type: Boolean, default: true },
   },
 
   components: {
@@ -19,6 +20,10 @@ export default {
     tabDragStart(event) {
       this.$emit("tabDragStart", event);
     },
+    contextMenuOpen(nodeId, event) {
+      console.log("contextMenu", event, nodeId);
+      this.$emit("contextMenuOpen", event, nodeId);
+    },
   },
   render(h) {
     const activeIndex = this.node.children.findIndex(
@@ -31,8 +36,14 @@ export default {
       const child = this.node.children[i];
       const tabHeaders = [];
 
+      const title = [];
+      if (child.icon != null) {
+        title.push(<v-icon small>{"mdi-" + child.icon}</v-icon>);
+      }
+      title.push(child.title);
+
       tabHeaders.push(
-        <div class="split-layout-tabs__header-title">{[child.title]}</div>
+        <div class="split-layout-tabs__header-title">{title}</div>
       );
       if (this.closeable) {
         tabHeaders.push(
@@ -51,6 +62,7 @@ export default {
           on={{
             mousedown: this.tabDragStart,
             touchstart: this.tabDragStart,
+            contextmenu: this.contextMenuOpen.bind(this, child.id),
           }}
           attrs={{ "node-id": "_" + child.id }}
         >
@@ -59,7 +71,22 @@ export default {
       );
     }
 
-    headers.push(<div class="split-layout-tabs__header-space"></div>);
+    headers.push(
+      <div
+        class="split-layout-tabs__header-space"
+        on={
+          this.groupDragable
+            ? {
+                mousedown: this.tabDragStart,
+                touchstart: this.tabDragStart,
+              }
+            : {}
+        }
+        attrs={{
+          style: `min-width: ${30}px;`,
+        }}
+      ></div>
+    );
     let header = (
       <simplebar
         class={"split-layout-tabs__headers-bar"}
@@ -69,6 +96,7 @@ export default {
           class={
             "split-layout-tabs__headers" + (this.node.active ? " active" : "")
           }
+          attrs={{ "node-id": "_" + this.node.id }}
         >
           {headers}
         </div>
