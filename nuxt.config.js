@@ -42,6 +42,11 @@ export default {
 
   // Vuetify module configuration (https://go.nuxtjs.dev/config-vuetify)
   vuetify: {
+    optionsPath: "./plugins/vuetify.options.js",
+    defaultAssets: {
+      font: false,
+      icons: false
+    },
     customVariables: ['~/assets/variables.scss'],
     theme: {
       dark: false,
@@ -70,5 +75,8 @@ export default {
 
   // Build Configuration (https://go.nuxtjs.dev/config-build)
   build: {
+    // extend(config, { isDev, isClient }) {
+    //   config.devtool = 'source-map'
+    // }
   }
 }

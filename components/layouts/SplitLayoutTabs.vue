@@ -38,7 +38,7 @@ export default {
 
       const title = [];
       if (child.icon != null) {
-        title.push(<v-icon small>{"mdi-" + child.icon}</v-icon>);
+        title.push(<v-icon small>{child.icon}</v-icon>);
       }
       title.push(child.title);
 

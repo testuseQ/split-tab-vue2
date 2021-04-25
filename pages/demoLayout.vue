@@ -93,6 +93,7 @@
 </template>
 
 <script>
+import { mdiAccount } from "@mdi/js";
 const slot = {
   type: "container",
   dir: "vertical",
@@ -105,7 +106,7 @@ const slot = {
           weight: 1,
           type: "page",
           page: "testPageA",
-          icon: "account",
+          icon: mdiAccount,
         },
       ],
     },
@@ -120,7 +121,7 @@ const slot = {
         {
           page: "testPageF",
           scroll: false,
-          icon: "account",
+          icon: mdiAccount,
         },
       ],
     },
@@ -132,6 +133,7 @@ const layouts = [
   {
     weight: 1,
     page: "testPageA",
+    icon: mdiAccount,
   },
   {
     type: "container",
@@ -145,7 +147,7 @@ const layouts = [
             weight: 1,
             type: "page",
             page: "testPageA",
-            icon: "account",
+            icon: mdiAccount,
           },
         ],
       },
@@ -155,7 +157,7 @@ const layouts = [
         children: [
           {
             page: "testPageB",
-            icon: "account",
+            icon: mdiAccount,
           },
         ],
         active: true,
@@ -167,7 +169,7 @@ const layouts = [
           {
             page: "testPageC",
             scroll: false,
-            icon: "account",
+            icon: mdiAccount,
           },
         ],
       },
@@ -178,7 +180,7 @@ const layouts = [
         children: [
           {
             page: "testPageD",
-            icon: "account",
+            icon: mdiAccount,
           },
         ],
       },
@@ -189,6 +191,7 @@ const layouts = [
         children: [
           {
             page: "testPageE",
+            icon: mdiAccount,
           },
         ],
       },

@@ -9,11 +9,13 @@
     "generate": "nuxt generate"
   },
   "dependencies": {
+    "@mdi/js": "^5.9.55",
     "nuxt": "^2.14.6",
     "simplebar-vue": "^1.6.0",
     "vue-context": "^6.0.0"
   },
   "devDependencies": {
+    "@mdi/font": "^5.9.55",
     "@nuxtjs/vuetify": "^1.11.2"
   }
 }

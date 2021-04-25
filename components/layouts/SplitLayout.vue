@@ -162,14 +162,14 @@ export default {
       const nodes = this.findNodes(node, (x) => x.type === "page");
       nodes.forEach((x) => this.$eventHub.$emit("set-rect-" + x.id, nextTick));
     },
-    save() {
+    save(storage = "layout") {
       //console.log("save", JSON.stringify(this.root, null, "\t"));
       if (this.volatile) return;
-      localStorage.layout = this.serializeTree(this.root);
+      localStorage[storage] = this.serializeTree(this.root);
     },
-    load() {
+    load(storage = "layout") {
       if (this.volatile) return;
-      return this.deserializeTree(localStorage.layout);
+      return this.deserializeTree(localStorage[storage]);
     },
     openPage(args) {
       let { page, unique, title, icon, tabs, scroll, scrollX, scrollY } = args;

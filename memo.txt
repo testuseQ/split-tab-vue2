@@ -21,7 +21,7 @@ onSplitResize
 
 
 ## remake
-- slot layout
+- slot layout ok
 - add vue ok
 - rect ok
 - split minimizeのopen時のリミット ok
@@ -36,9 +36,9 @@ onSplitResize
 
 
 ## todo
-- タブアイコン
+- タブアイコン　ok
 - タブのチップス
-- タブグループドラック - タブグループごと移動する
+- タブグループドラック - タブグループごと移動する ok
 - 最大化ボタン -　ほかのパネルを閉じる　□
 - 復元ボタン -　閉じたパネルを開く　□□
 
